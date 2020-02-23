@@ -1,6 +1,15 @@
 %option yylineno
+LETTER    [_A-Za-z]
+WS ([ \r\n])+
+
+WRONGOCT    0([0-7])*([89])+([0-9])*
+WRONGHEX    0[xX][0-9A-Fa-f]*[G-Zg-z]+[0-9A-Za-z]*
+WRONGINT    [0-9][0-9]*({LETTER})+[0-9]*
 INT    [1-9]([0-9])*|0([0-7])*|0[xX][0-9A-Fa-f]+
-FLOAT    [0-9]+\.[0-9]+|[0-9]*\.[0-9]*[eE][+-]?[0-9]+
+
+WRONGFLOAT \.[0-9]+|[0-9]+\.
+FLOAT    [0-9]+\.[0-9]+|[0-9]+\.[0-9]*[eE][+-]?[0-9]+|[0-9]*\.[0-9]+[eE][+-]?[0-9]+
+
 COMMENT    "//".*(\n)?|"/\*"[^*]*("\*")+([^/*][^*]*("\*")+)*"/"
 SEMI    ";"
 COMMA   ","
@@ -26,13 +35,18 @@ RETURN    "return"
 IF    "if"
 ELSE    "else"
 WHILE    "while"
-LETTER    [_A-Za-z]
 ID    ({LETTER}({LETTER}|[0-9])*){1,31}
-WS ([ \r\n])+
+
 
 %%
-{INT} {printf("Integer value %d\n", atoi(yytext));}
+{WRONGOCT} {printf("Error tpye A at Line %d: Illegal octal number \'%s\'\n",yylineno,yytext);}
+{WRONGHEX} {printf("Error tpye A at Line %d: Illegal hexadecimal number \'%s\'\n",yylineno,yytext);}
+{WRONGINT} {printf("Error tpye A at Line %d: Illegal int number \'%s\'\n",yylineno,yytext);}
+{INT} {printf("Integer value %d\n",atoi(yytext));}
+
+{WRONGFLOAT} {printf("Error tpye A at Line %d: Illegal float number \'%s\'\n",yylineno,yytext);}
 {FLOAT} {printf("Float value %f\n", atof(yytext));}
+
 {COMMENT} {printf("COMMENT BLOCK %s\n", yytext);}
 {DIV}{STAR} {
     printf("Error type A at Line %d: unterminated comment.\n", yylineno);
