@@ -1,3 +1,4 @@
+%option yylineno
 INT    [1-9]([0-9])*|0([0-7])*|0[xX][0-9A-Fa-f]+
 FLOAT    [0-9]+\.[0-9]+|[0-9]*\.[0-9]*[eE][+-]?[0-9]+
 COMMENT    "//".*(\n)?|"/\*"[^*]*("\*")+([^/*][^*]*("\*")+)*"/"
@@ -32,7 +33,12 @@ WS ([ \r\n])+
 %%
 {INT} {printf("Integer value %d\n", atoi(yytext));}
 {FLOAT} {printf("Float value %f\n", atof(yytext));}
-{COMMENT} {printf("COMMENT %s\n", yytext);}
+{COMMENT} {printf("COMMENT BLOCK %s\n", yytext);}
+{DIV}{STAR} {
+    printf("Error type A at Line %d: unterminated comment.\n", yylineno);
+    char c = input();
+    while(c != '\0') c = input();
+}
 {SEMI} {printf("SEMI\n");}
 {COMMA} {printf("COMMA\n");}
 {ASSIGNOP} {printf("ASSIGNOP\n");}
