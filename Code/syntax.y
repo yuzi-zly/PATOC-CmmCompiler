@@ -1,6 +1,9 @@
 %{
     #include <stdio.h>
     #include <stdlib.h>
+
+    // #define YYDEBUG 1
+    // int yydebug = 1;
 %}
 %locations
 
@@ -14,7 +17,7 @@
 /*declared tokens*/
 %token <type_int> INT
 %token <type_float> FLOAT
-%token COMMENT SEMI COMMA ASSIGNOP
+%token SEMI COMMA ASSIGNOP
 %token <type_string> RELOP 
 %token PLUS MINUS STAR DIV AND OR DOT NOT
 %token <type_string> TYPE
@@ -30,7 +33,7 @@
 %left PLUS MINUS
 %left STAR DIV
 %right HIGHER_THAN_MINUS NOT
-%left DOT LP RP LB RB
+%left DOT LB RB LP RP 
 
 
 %nonassoc LOWER_THAN_ELSE
@@ -125,7 +128,8 @@ Exp : Exp ASSIGNOP Exp
     |   ID
     |   INT
     |   FLOAT
-    |   error RP
+    |   error RB
+    |   Exp LB error
     ;
 Args : Exp COMMA Args
     |   Exp

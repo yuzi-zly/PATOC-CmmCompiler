@@ -15,6 +15,8 @@
 %}
 
 letter    [_A-Za-z]
+delim   [ \t\r]
+ws  {delim}+
 
 wrongoct    0([0-7])*([89])+([0-9])*
 wronghex    0[xX][0-9A-Fa-f]*[G-Zg-z]+[0-9A-Za-z]*
@@ -93,12 +95,11 @@ id    ({letter}({letter}|[0-9])*){1,31}
 
 {wrongfloat} {printf("Error tpye A at Line %d: Illegal float number \'%s\'\n",yylineno,yytext); return FLOAT;}
 {float} {
-    printf("Float value %f\n", atof(yytext));
     yylval.type_float = (float)atof(yytext);
     return FLOAT;
 }
 
-{comment} { return COMMENT;}
+{comment} { /**/ }
 {div}{star} {
     printf("Error type A at Line %d: unterminated comment.\n", yylineno);
     char c = input();
@@ -141,10 +142,11 @@ id    ({letter}({letter}|[0-9])*){1,31}
     yylval.type_string = yytext;
     return ID;
 }
-\n { yycolumn = 1; }
-[ \r]+ {/**/}
+{ws} {/* */}
+\n  {yycolumn = 1;}
 
-. {printf("Error type A at Line %d: Mysterious characters \'%s\'\n",yylineno, yytext);}
+
+. {printf("Error type A at Line %d: Mysterious characters \'%s\' \n",yylineno, yytext);}
 
 %%
 
