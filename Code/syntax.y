@@ -1,7 +1,8 @@
 %{
     #include <stdio.h>
     #include <stdlib.h>
-
+    int yylex();
+    void yyerror(char * msg);
     // #define YYDEBUG 1
     // int yydebug = 1;
 %}
@@ -128,7 +129,7 @@ Exp : Exp ASSIGNOP Exp
     |   ID
     |   INT
     |   FLOAT
-    |   error RB
+    |   error RB 
     |   Exp LB error
     ;
 Args : Exp COMMA Args
@@ -139,6 +140,6 @@ Args : Exp COMMA Args
 
 #include "lex.yy.c"
 
-yyerror(char* msg){
-    fprintf(stderr, "error: %s at line %d\n",msg,yylineno);
+void yyerror(char* msg){
+    fprintf(stderr, "Error type B at Line %d: %s\n",yylineno,msg);
 }

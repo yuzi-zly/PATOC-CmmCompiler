@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 extern FILE* yyin;
+extern void yyrestart();
+extern void yyparse();
 int main(int argc, char** argv){
     if(argc <= 1) return 1;
     FILE* f = fopen(argv[1],"r");
