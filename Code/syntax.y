@@ -2,11 +2,13 @@
     #include <stdio.h>
     #include <stdlib.h>
     int yylex();
-    void yyerror(char * msg);
+    void yyerror(const char * msg);
+
     // #define YYDEBUG 1
     // int yydebug = 1;
 %}
 %locations
+%error-verbose 
 
 /*declared types*/
 %union {
@@ -26,6 +28,11 @@
 %token STRUCT RETURN IF ELSE WHILE
 %token <type_string> ID
 
+
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
+
+
 /* Operators */
 %right ASSIGNOP
 %left OR
@@ -37,8 +44,7 @@
 %left DOT LB RB LP RP 
 
 
-%nonassoc LOWER_THAN_ELSE
-%nonassoc ELSE
+
 
 %%
 /* High-level Definitions */
@@ -50,6 +56,9 @@ ExtDefList : ExtDef ExtDefList
 ExtDef : Specifier ExtDecList SEMI
     |   Specifier SEMI
     |   Specifier FunDec CompSt
+    |   error SEMI
+    |   Specifier ExtDecList error
+    |   Specifier error 
     ;
 ExtDecList : VarDec
     |   VarDec COMMA ExtDecList
@@ -61,6 +70,8 @@ Specifier : TYPE
     ;
 StructSpecifier : STRUCT OptTag LC DefList RC
     |   STRUCT Tag 
+    |   STRUCT OptTag LC error RC
+    |   STRUCT OptTag LC error
     ;
 OptTag : ID
     |   /*empty*/
@@ -71,9 +82,12 @@ Tag : ID
 /* Declarators */
 VarDec : ID
     |   VarDec LB INT RB
+    |   VarDec LB error RB
     ;
 FunDec : ID LP VarList RP
     |   ID LP RP
+    |   ID LP error RP
+    |   ID LP error
     ;
 VarList : ParamDec COMMA VarList
     |   ParamDec
@@ -83,18 +97,29 @@ ParamDec : Specifier VarDec
 
 /* Statements */
 CompSt : LC DefList StmtList RC
-    |   error RC
     ;
+
 StmtList : Stmt StmtList
     |   /*empty*/
     ;
 Stmt : Exp SEMI
+    |   Exp error
     |   CompSt
     |   RETURN Exp SEMI
+    |   RETURN  Exp error
+    |   error SEMI
     |   IF LP Exp RP Stmt %prec LOWER_THAN_ELSE
     |   IF LP Exp RP Stmt ELSE Stmt
     |   WHILE LP Exp RP Stmt
-    |   error SEMI
+    |   IF LP error RP Stmt %prec LOWER_THAN_ELSE
+    |   IF LP error RP Stmt ELSE Stmt
+    |   WHILE LP error RP Stmt
+    |   IF LP error Stmt %prec LOWER_THAN_ELSE
+    |   IF LP error Stmt ELSE Stmt
+    |   WHILE LP error Stmt
+    |   IF error RP Stmt %prec LOWER_THAN_ELSE
+    |   IF error RP Stmt ELSE Stmt
+    |   WHILE error RP Stmt
     ;
 
 /* Local Definitions */
@@ -102,6 +127,7 @@ DefList : Def DefList
     |   /*empty*/
     ;
 Def : Specifier DecList SEMI
+    |   Specifier DefList error
     ;
 DecList : Dec
     |   Dec COMMA DecList
@@ -120,7 +146,7 @@ Exp : Exp ASSIGNOP Exp
     |   Exp STAR Exp
     |   Exp DIV Exp
     |   LP Exp RP
-    |   MINUS Exp
+    |   MINUS Exp %prec HIGHER_THAN_MINUS
     |   NOT Exp
     |   ID LP Args RP
     |   ID LP RP
@@ -129,8 +155,9 @@ Exp : Exp ASSIGNOP Exp
     |   ID
     |   INT
     |   FLOAT
-    |   error RB 
-    |   Exp LB error
+    |   Exp LB error RB
+    |   LP error RP
+    |   ID LP error RP
     ;
 Args : Exp COMMA Args
     |   Exp
@@ -140,6 +167,29 @@ Args : Exp COMMA Args
 
 #include "lex.yy.c"
 
-void yyerror(char* msg){
+char * myitoa(int num, char* str){
+    int i = 0;
+    do
+    {
+        str[i++] = num%10+48;
+        num /= 10;
+    }while(num);
+    str[i] = '\0';  
+    int j = 0;
+    if(str[0]=='-')
+    {
+        j = 1;
+        ++i;
+    }    
+    for(;j<i/2;j++)
+    {      
+        str[j] = str[j] + str[i-1-j];
+        str[i-1-j] = str[j] - str[i-1-j];
+        str[j] = str[j] - str[i-1-j];
+    }  
+    return str;
+}
+
+void yyerror(const char* msg){
     fprintf(stderr, "Error type B at Line %d: %s\n",yylineno,msg);
 }

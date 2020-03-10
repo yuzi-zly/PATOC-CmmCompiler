@@ -76,8 +76,8 @@ extern int yydebug;
     ELSE = 282,
     WHILE = 283,
     ID = 284,
-    HIGHER_THAN_MINUS = 285,
-    LOWER_THAN_ELSE = 286
+    LOWER_THAN_ELSE = 285,
+    HIGHER_THAN_MINUS = 286
   };
 #endif
 
@@ -86,7 +86,7 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 12 "./syntax.y" /* yacc.c:1921  */
+#line 14 "./syntax.y" /* yacc.c:1921  */
 
     int type_int;
     float type_float;
