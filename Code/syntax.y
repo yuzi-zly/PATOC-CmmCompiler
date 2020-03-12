@@ -8,7 +8,7 @@
     // int yydebug = 1;
 %}
 %locations
-%error-verbose 
+// %error-verbose 
 
 /*declared types*/
 %union {
@@ -31,7 +31,7 @@
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
-
+%nonassoc LOWER_THAN_RP
 
 /* Operators */
 %right ASSIGNOP
@@ -54,11 +54,12 @@ ExtDefList : ExtDef ExtDefList
     |   /* empty*/
     ;
 ExtDef : Specifier ExtDecList SEMI
+    |   Specifier ExtDecList error
     |   Specifier SEMI
     |   Specifier FunDec CompSt
     |   error SEMI
-    |   Specifier ExtDecList error
     |   Specifier error 
+    |   Specifier ID LP error CompSt
     ;
 ExtDecList : VarDec
     |   VarDec COMMA ExtDecList
@@ -71,7 +72,6 @@ Specifier : TYPE
 StructSpecifier : STRUCT OptTag LC DefList RC
     |   STRUCT Tag 
     |   STRUCT OptTag LC error RC
-    |   STRUCT OptTag LC error
     ;
 OptTag : ID
     |   /*empty*/
@@ -82,12 +82,10 @@ Tag : ID
 /* Declarators */
 VarDec : ID
     |   VarDec LB INT RB
-    |   VarDec LB error RB
     ;
 FunDec : ID LP VarList RP
     |   ID LP RP
     |   ID LP error RP
-    |   ID LP error
     ;
 VarList : ParamDec COMMA VarList
     |   ParamDec
@@ -104,10 +102,15 @@ StmtList : Stmt StmtList
     ;
 Stmt : Exp SEMI
     |   Exp error
+    |   Exp LB error SEMI
+    |   ID LP error SEMI
+    |   LP error SEMI
     |   CompSt
     |   RETURN Exp SEMI
     |   RETURN  Exp error
-    |   error SEMI
+    |   RETURN Exp LB error SEMI
+    |   RETURN ID LP error SEMI
+    |   RETURN LP error SEMI
     |   IF LP Exp RP Stmt %prec LOWER_THAN_ELSE
     |   IF LP Exp RP Stmt ELSE Stmt
     |   WHILE LP Exp RP Stmt
@@ -127,7 +130,8 @@ DefList : Def DefList
     |   /*empty*/
     ;
 Def : Specifier DecList SEMI
-    |   Specifier DefList error
+    |   Specifier DecList error
+    |   error SEMI
     ;
 DecList : Dec
     |   Dec COMMA DecList
