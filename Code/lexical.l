@@ -5,7 +5,9 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include "syntax.tab.h"
-
+    #include "SynTree.h"
+    
+    int print_flag = 1;// 1-ok ,0-error
     int yycolumn = 1;
     #define YY_USER_ACTION \
         yylloc.first_line = yylloc.last_line = yylineno; \
@@ -57,10 +59,19 @@ id    ({letter}({letter}|[0-9])*){1,31}
 
 
 %%
-{wrongoct} {printf("Error tpye A at Line %d: Illegal octal number \'%s\'\n",yylineno,yytext); return INT;}
-{wronghex} {printf("Error tpye A at Line %d: Illegal hexadecimal number \'%s\'\n",yylineno,yytext); return INT;}
+{wrongoct} {
+    printf("Error tpye A at Line %d: Illegal octal number \'%s\'\n",yylineno,yytext);
+    print_flag = 0;
+    return INT;
+}
+{wronghex} {
+    printf("Error tpye A at Line %d: Illegal hexadecimal number \'%s\'\n",yylineno,yytext);
+    print_flag = 0;    
+    return INT;
+}
 {dec} {
-    yylval.type_int = atoi(yytext);
+    yylval.ptr = Create("INT",yylineno);
+    yylval.ptr->value.type_int = atoi(yytext);
     return INT;
 }
 {octal} {
@@ -69,7 +80,8 @@ id    ({letter}({letter}|[0-9])*){1,31}
     for(int i = 1; i < len; ++i){
         value =  value*8 + yytext[i] - 48;
     }
-    yylval.type_int = value;
+    yylval.ptr = Create("INT",yylineno);
+    yylval.ptr->value.type_int = value;
     return INT;
 }
 {hex} {
@@ -87,66 +99,149 @@ id    ({letter}({letter}|[0-9])*){1,31}
             value = value + yytext[i] - 87;
         }
     }
-    yylval.type_int = value;
+    yylval.ptr = Create("INT",yylineno);
+    yylval.ptr->value.type_int = value;
     return INT;
 }
 
-{wrongint} {printf("Error tpye A at Line %d: Illegal int number \'%s\'\n",yylineno,yytext); return INT;}
+{wrongint} {
+    printf("Error tpye A at Line %d: Illegal int number \'%s\'\n",yylineno,yytext);
+    print_flag = 0;
+    return INT;
+}
 
-{wrongfloat} {printf("Error tpye A at Line %d: Illegal float number \'%s\'\n",yylineno,yytext); return FLOAT;}
+{wrongfloat} {
+    printf("Error tpye A at Line %d: Illegal float number \'%s\'\n",yylineno,yytext);
+    print_flag = 0;
+    return FLOAT;
+}
 {float} {
-    yylval.type_float = (float)atof(yytext);
+    yylval.ptr = Create("FLOAT",yylineno);
+    yylval.ptr->value.type_float = (float)atof(yytext);
     return FLOAT;
 }
 
 {comment} { /**/ }
 {div}{star} {
     printf("Error type A at Line %d: unterminated comment.\n", yylineno);
+    print_flag = 0;
     char c = input();
     while(c != '\0') c = input();
 
 }
 
 
-{semi} {return SEMI;}
-{comma} {return COMMA;}
-{assignop} {return ASSIGNOP;}
+{semi} {
+    yylval.ptr = Create("SEMI",yylineno);
+    return SEMI;
+}
+{comma} {
+    yylval.ptr = Create("COMMA",yylineno);    
+    return COMMA;
+}
+{assignop} {
+    yylval.ptr = Create("ASSIGNOP",yylineno);
+    return ASSIGNOP;
+}
 {relop} {
-    yylval.type_string = yytext;
+    yylval.ptr = Create("RELOP",yylineno);
+    strncpy(yylval.ptr->value.type_string,yytext,strlen(yytext));
     return RELOP;
 }
-{plus} {return PLUS;}
-{minus} {return MINUS;}
-{star} {return STAR;}
-{div} {return DIV;}
-{and} {return AND;}
-{or} {return OR;}
-{dot} {return DOT;}
-{not} {return NOT;}
+{plus} {
+    yylval.ptr = Create("PLUS",yylineno);
+    return PLUS;
+}
+{minus} {
+    yylval.ptr = Create("MINUS",yylineno);
+    return MINUS;
+}
+{star} {
+    yylval.ptr = Create("STAR",yylineno);
+    return STAR;
+}
+{div} {
+    yylval.ptr = Create("DIV",yylineno);
+    return DIV;
+}
+{and} {
+    yylval.ptr = Create("AND",yylineno);
+    return AND;
+}
+{or} {
+    yylval.ptr = Create("OR",yylineno);
+    return OR;
+}
+{dot} {
+    yylval.ptr = Create("DOT",yylineno);
+    return DOT;
+}
+{not} {
+    yylval.ptr = Create("NOT",yylineno);
+    return NOT;
+}
 {type} {
-    yylval.type_string = yytext;
+    yylval.ptr = Create("TYPE",yylineno);
+    strncpy(yylval.ptr->value.type_string,yytext,strlen(yytext));
     return TYPE;
 }
-{lp} {return LP;}
-{rp} {return RP;}
-{lb} {return LB;}
-{rb} {return RB;}
-{lc} {return LC;}
-{rc} {return RC;}
-{struct} {return STRUCT;}
-{return} {return RETURN;}
-{if} {return IF;}
-{else} {return ELSE;}
-{while} {return WHILE;}
+{lp} {
+    yylval.ptr = Create("LP",yylineno);
+    return LP;
+}
+{rp} {
+    yylval.ptr = Create("RP",yylineno);
+    return RP;
+}
+{lb} {
+    yylval.ptr = Create("LB",yylineno);
+    return LB;
+}
+{rb} {
+    yylval.ptr = Create("RB",yylineno);
+    return RB;
+}
+{lc} {
+    yylval.ptr = Create("LC",yylineno);
+    return LC;
+}
+{rc} {
+    yylval.ptr = Create("RC",yylineno);
+    return RC;
+}
+{struct} {
+    yylval.ptr = Create("STRUCT",yylineno);
+    return STRUCT;
+}
+{return} {
+    yylval.ptr = Create("RETURN",yylineno);
+    return RETURN;
+}
+{if} {
+    yylval.ptr = Create("IF",yylineno);
+    return IF;
+}
+{else} {
+    yylval.ptr = Create("ELSE",yylineno);
+    return ELSE;
+}
+{while} {
+    yylval.ptr = Create("WHILE",yylineno);
+    return WHILE;
+}
 {id} {
-    yylval.type_string = yytext;
+    yylval.ptr = Create("ID",yylineno);
+    strncpy(yylval.ptr->value.type_string,yytext,strlen(yytext));
     return ID;
 }
 {ws} {/* */}
 \n  {yycolumn = 1;}
 
 
-. {printf("Error type A at Line %d: Mysterious characters \'%s\' \n",yylineno, yytext);}
+. {
+    printf("Error type A at Line %d: Mysterious characters \'%s\' \n",yylineno, yytext);
+    print_flag = 0;    
+}
 
 %%
 
