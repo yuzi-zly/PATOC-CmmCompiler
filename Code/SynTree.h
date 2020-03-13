@@ -1,6 +1,6 @@
 union Val {
-    int type_int;
-    float type_float;
+    unsigned int type_int;
+    double type_float;
     char  type_string[30];
 };
 
@@ -10,12 +10,12 @@ struct Node{
     struct Node * brother;
     int num_child;
     int row,col;
-    int first;
     int visit;
+    int s_or_w; //1-syn,0-words
     union Val value;
 };
 
-
-struct Node* Create(char *name, int row);
+extern struct Node* root;
+struct Node* Create(char *name, int row,int flag);
 void AddNode(struct Node * p, struct Node * child);
 void OutputTree(struct Node* root);

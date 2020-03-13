@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "SynTree.h"
 extern FILE* yyin;
 extern void yyrestart();
 extern void yyparse();
-extern struct Node * root;
+extern int print_flag;
+
 void OutputTree(struct Node* root);
 
 
@@ -16,6 +18,7 @@ int main(int argc, char** argv){
     }
     yyrestart(f);
     yyparse();
-    OutputTree(root);
+    if(print_flag == 1)
+        OutputTree(root);
     return 0;
 }

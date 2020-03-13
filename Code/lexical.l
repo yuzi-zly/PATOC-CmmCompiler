@@ -6,14 +6,11 @@
     #include <stdlib.h>
     #include "syntax.tab.h"
     #include "SynTree.h"
+
     
     int print_flag = 1;// 1-ok ,0-error
-    int yycolumn = 1;
     #define YY_USER_ACTION \
-        yylloc.first_line = yylloc.last_line = yylineno; \
-        yylloc.first_column = yycolumn; \
-        yylloc.last_column = yycolumn + yyleng - 1; \
-        yycolumn += yyleng;
+        yylloc.first_line = yylloc.last_line = yylineno;
 %}
 
 letter    [_A-Za-z]
@@ -70,7 +67,7 @@ id    ({letter}({letter}|[0-9])*){1,31}
     return INT;
 }
 {dec} {
-    yylval.ptr = Create("INT",yylineno);
+    yylval.ptr = Create("INT",yylineno,0);
     yylval.ptr->value.type_int = atoi(yytext);
     return INT;
 }
@@ -80,7 +77,7 @@ id    ({letter}({letter}|[0-9])*){1,31}
     for(int i = 1; i < len; ++i){
         value =  value*8 + yytext[i] - 48;
     }
-    yylval.ptr = Create("INT",yylineno);
+    yylval.ptr = Create("INT",yylineno,0);
     yylval.ptr->value.type_int = value;
     return INT;
 }
@@ -99,7 +96,7 @@ id    ({letter}({letter}|[0-9])*){1,31}
             value = value + yytext[i] - 87;
         }
     }
-    yylval.ptr = Create("INT",yylineno);
+    yylval.ptr = Create("INT",yylineno,0);
     yylval.ptr->value.type_int = value;
     return INT;
 }
@@ -116,126 +113,131 @@ id    ({letter}({letter}|[0-9])*){1,31}
     return FLOAT;
 }
 {float} {
-    yylval.ptr = Create("FLOAT",yylineno);
-    yylval.ptr->value.type_float = (float)atof(yytext);
+    yylval.ptr = Create("FLOAT",yylineno,0);
+    yylval.ptr->value.type_float = atof(yytext);
     return FLOAT;
 }
 
 {comment} { /**/ }
 {div}{star} {
-    printf("Error type A at Line %d: unterminated comment.\n", yylineno);
     print_flag = 0;
+    int line = yylineno;
     char c = input();
-    while(c != '\0') c = input();
+    while(c != '\0') {
+        if(c == '\n')
+            line++;
+         c = input();
+    }
+    printf("Error type A at Line %d: unterminated comment.\n", line);
 
 }
 
 
 {semi} {
-    yylval.ptr = Create("SEMI",yylineno);
+    yylval.ptr = Create("SEMI",yylineno,0);
     return SEMI;
 }
 {comma} {
-    yylval.ptr = Create("COMMA",yylineno);    
+    yylval.ptr = Create("COMMA",yylineno,0);    
     return COMMA;
 }
 {assignop} {
-    yylval.ptr = Create("ASSIGNOP",yylineno);
+    yylval.ptr = Create("ASSIGNOP",yylineno,0);
     return ASSIGNOP;
 }
 {relop} {
-    yylval.ptr = Create("RELOP",yylineno);
+    yylval.ptr = Create("RELOP",yylineno,0);
     strncpy(yylval.ptr->value.type_string,yytext,strlen(yytext));
     return RELOP;
 }
 {plus} {
-    yylval.ptr = Create("PLUS",yylineno);
+    yylval.ptr = Create("PLUS",yylineno,0);
     return PLUS;
 }
 {minus} {
-    yylval.ptr = Create("MINUS",yylineno);
+    yylval.ptr = Create("MINUS",yylineno,0);
     return MINUS;
 }
 {star} {
-    yylval.ptr = Create("STAR",yylineno);
+    yylval.ptr = Create("STAR",yylineno,0);
     return STAR;
 }
 {div} {
-    yylval.ptr = Create("DIV",yylineno);
+    yylval.ptr = Create("DIV",yylineno,0);
     return DIV;
 }
 {and} {
-    yylval.ptr = Create("AND",yylineno);
+    yylval.ptr = Create("AND",yylineno,0);
     return AND;
 }
 {or} {
-    yylval.ptr = Create("OR",yylineno);
+    yylval.ptr = Create("OR",yylineno,0);
     return OR;
 }
 {dot} {
-    yylval.ptr = Create("DOT",yylineno);
+    yylval.ptr = Create("DOT",yylineno,0);
     return DOT;
 }
 {not} {
-    yylval.ptr = Create("NOT",yylineno);
+    yylval.ptr = Create("NOT",yylineno,0);
     return NOT;
 }
 {type} {
-    yylval.ptr = Create("TYPE",yylineno);
+    yylval.ptr = Create("TYPE",yylineno,0);
     strncpy(yylval.ptr->value.type_string,yytext,strlen(yytext));
     return TYPE;
 }
 {lp} {
-    yylval.ptr = Create("LP",yylineno);
+    yylval.ptr = Create("LP",yylineno,0);
     return LP;
 }
 {rp} {
-    yylval.ptr = Create("RP",yylineno);
+    yylval.ptr = Create("RP",yylineno,0);
     return RP;
 }
 {lb} {
-    yylval.ptr = Create("LB",yylineno);
+    yylval.ptr = Create("LB",yylineno,0);
     return LB;
 }
 {rb} {
-    yylval.ptr = Create("RB",yylineno);
+    yylval.ptr = Create("RB",yylineno,0);
     return RB;
 }
 {lc} {
-    yylval.ptr = Create("LC",yylineno);
+    yylval.ptr = Create("LC",yylineno,0);
     return LC;
 }
 {rc} {
-    yylval.ptr = Create("RC",yylineno);
+    yylval.ptr = Create("RC",yylineno,0);
     return RC;
 }
 {struct} {
-    yylval.ptr = Create("STRUCT",yylineno);
+    yylval.ptr = Create("STRUCT",yylineno,0);
     return STRUCT;
 }
 {return} {
-    yylval.ptr = Create("RETURN",yylineno);
+    yylval.ptr = Create("RETURN",yylineno,0);
     return RETURN;
 }
 {if} {
-    yylval.ptr = Create("IF",yylineno);
+    yylval.ptr = Create("IF",yylineno,0);
     return IF;
 }
 {else} {
-    yylval.ptr = Create("ELSE",yylineno);
+    yylval.ptr = Create("ELSE",yylineno,0);
     return ELSE;
 }
 {while} {
-    yylval.ptr = Create("WHILE",yylineno);
+    yylval.ptr = Create("WHILE",yylineno,0);
     return WHILE;
 }
 {id} {
-    yylval.ptr = Create("ID",yylineno);
+    yylval.ptr = Create("ID",yylineno,0);
     strncpy(yylval.ptr->value.type_string,yytext,strlen(yytext));
     return ID;
 }
 {ws} {/* */}
-\n  {yycolumn = 1;}
+\n  {/**/}
 
 
 . {
