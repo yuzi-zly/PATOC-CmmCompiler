@@ -128,7 +128,7 @@ id    ({letter}({letter}|[0-9])*){1,31}
             line++;
          c = input();
     }
-    printf("Error type A at Line %d: unterminated comment.\n", line);
+    printf("Error type B at Line %d: unterminated comment.\n", line);
 
 }
 
