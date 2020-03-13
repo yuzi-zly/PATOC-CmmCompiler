@@ -54,7 +54,11 @@
 %%
 /* High-level Definitions */
 Program :   ExtDefList {
-                $$ = Create("Program",@1.first_line,1);
+                if($1 == NULL){
+                    $$ = Create("Program",yylineno,1);
+                }
+                else 
+                    $$ = Create("Program",@1.first_line,1);
                 AddNode($$,$1);
                 root = $$;
             }
