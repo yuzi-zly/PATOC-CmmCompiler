@@ -10,6 +10,9 @@ struct Node* Create(char *name, int row,int flag){
         fprintf(stderr,"Memory Used Up\n");
         exit(1);
     }
+    memset(ret->name,0,sizeof(ret->name));
+    memset(ret->value.type_string,0,sizeof(ret->value.type_string));
+
     strncpy(ret->name,name,strlen(name));
     ret->row = row;
     ret->s_or_w = flag;
@@ -69,7 +72,7 @@ void OutputTree(struct Node* ptr){
             fprintf(stdout,": %u\n",ptr->value.type_int);
         }
         else if(strcmp(ptr->name,"FLOAT") == 0){
-            fprintf(stdout,": %f\n",ptr->value.type_float);
+            fprintf(stdout,": %f\n",(float)ptr->value.type_float);
         }
         else
         {

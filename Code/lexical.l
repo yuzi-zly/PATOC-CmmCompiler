@@ -57,12 +57,12 @@ id    ({letter}({letter}|[0-9])*){1,31}
 
 %%
 {wrongoct} {
-    printf("Error tpye A at Line %d: Illegal octal number \'%s\'\n",yylineno,yytext);
+    fprintf(stderr,"Error tpye A at Line %d: Illegal octal number \'%s\'.\n",yylineno,yytext);
     print_flag = 0;
     return INT;
 }
 {wronghex} {
-    printf("Error tpye A at Line %d: Illegal hexadecimal number \'%s\'\n",yylineno,yytext);
+    fprintf(stderr,"Error tpye A at Line %d: Illegal hexadecimal number \'%s\'.\n",yylineno,yytext);
     print_flag = 0;    
     return INT;
 }
@@ -102,13 +102,13 @@ id    ({letter}({letter}|[0-9])*){1,31}
 }
 
 {wrongint} {
-    printf("Error tpye A at Line %d: Illegal int number \'%s\'\n",yylineno,yytext);
+    fprintf(stderr,"Error tpye A at Line %d: Illegal int number \'%s\'.\n",yylineno,yytext);
     print_flag = 0;
     return INT;
 }
 
 {wrongfloat} {
-    printf("Error tpye A at Line %d: Illegal float number \'%s\'\n",yylineno,yytext);
+    fprintf(stderr,"Error tpye A at Line %d: Illegal float number \'%s\'.\n",yylineno,yytext);
     print_flag = 0;
     return FLOAT;
 }
@@ -128,7 +128,7 @@ id    ({letter}({letter}|[0-9])*){1,31}
             line++;
          c = input();
     }
-    printf("Error type B at Line %d: unterminated comment.\n", line);
+    fprintf(stderr,"Error type B at Line %d: unterminated comment.\n", line);
 
 }
 
@@ -241,7 +241,7 @@ id    ({letter}({letter}|[0-9])*){1,31}
 
 
 . {
-    printf("Error type A at Line %d: Mysterious characters \'%s\' \n",yylineno, yytext);
+    fprintf(stderr,"Error type A at Line %d: Mysterious characters \'%s\'.\n",yylineno, yytext);
     print_flag = 0;    
 }
 

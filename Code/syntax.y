@@ -502,7 +502,7 @@ char * myitoa(int num, char* str){
 }
 
 void yyerror(const char* msg){
-    fprintf(stderr, "Error type B at Line %d: %s\n",yylineno,msg);
+    fprintf(stderr, "Error type B at Line %d: %s.\n",yylineno,msg);
     print_flag = 0;
 }
 
