@@ -27,7 +27,7 @@ struct Node* Create(char *name, int row,int flag){
 
 void AddNode(struct Node * p, struct Node * child){
     if(child == NULL) {
-        return;return;
+        return;
     }
     if(p->num_child == 0){
         p->child = child;

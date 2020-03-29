@@ -92,6 +92,14 @@ ExtDef :    Specifier ExtDecList SEMI {
             AddNode($$,$3);
             root = $$;
         }
+    |   Specifier FunDec SEMI {
+            $$ = Create("ExtDef",@1.first_line,1);
+            AddNode($$,$1);
+            AddNode($$,$2);
+            AddNode($$,$3);
+            root = $$;
+        }
+    |   Specifier FunDec error { print_flag = 0;}
     |   error SEMI { print_flag = 0; }
     |   Specifier error  { print_flag = 0; }
     |   Specifier ID LP error CompSt { print_flag = 0; }
@@ -478,28 +486,6 @@ Args :  Exp COMMA Args {
 
 %%
 
-char * myitoa(int num, char* str){
-    int i = 0;
-    do
-    {
-        str[i++] = num%10+48;
-        num /= 10;
-    }while(num);
-    str[i] = '\0';  
-    int j = 0;
-    if(str[0]=='-')
-    {
-        j = 1;
-        ++i;
-    }    
-    for(;j<i/2;j++)
-    {      
-        str[j] = str[j] + str[i-1-j];
-        str[i-1-j] = str[j] - str[i-1-j];
-        str[j] = str[j] - str[i-1-j];
-    }  
-    return str;
-}
 
 void yyerror(const char* msg){
     fprintf(stderr, "Error type B at Line %d: %s.\n",yylineno,msg);
