@@ -1,2 +1,29 @@
-struct Comlex;
-struct A x;
+struct A buff;
+struct Complex{
+	int real;
+	int img;
+}c1;
+
+int Complex;
+int c1;
+
+int A;
+struct A{
+	int x;
+}y;
+
+
+struct Img{
+	int row = 0;
+	int col;
+	float col;
+};
+
+struct B{
+	int a;
+	struct C{
+		int b[10];
+	}x;
+};
+
+struct C x; 

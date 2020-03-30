@@ -8,7 +8,12 @@
 #define HTSIZE 0x3ff
 
 Item * Hashtable[HTSIZE];
-Item ** Stackhead;
+struct SymStack{
+    Item * Iptr;
+    int deep;
+    struct SymStack * next;
+} *Stackhead;
+
 struct DTNode *DThead;
 
 unsigned int Hash_pjw(char* name){
@@ -63,11 +68,21 @@ char *GetAStructName(){
 }
 
 /*----------------------- DTtable ---------------------------*/
-Type GetTypeByName(char* name){
+Type GetTypeByName(char* name, int deep){
+    struct DTNode * ptr = DThead;
+    while(ptr != NULL){
+        if(strcmp(name,ptr->name) == 0 && ptr->deep <= deep)
+            return &(ptr->type_);
+        ptr = ptr->next;
+    }
+    return NULL;
+}
+
+struct DTNode * GetDTNodeByName(char* name){
     struct DTNode * ptr = DThead;
     while(ptr != NULL){
         if(strcmp(name,ptr->name) == 0)
-            return &(ptr->type_);
+            return ptr;
         ptr = ptr->next;
     }
     return NULL;
@@ -105,7 +120,12 @@ void CreateAndAddDTNodeForStruct(char* name, int structnum, int deep){
     newDTnode->next = tmp;
     DThead = newDTnode;
 
+    #ifdef DEBUG
+        LogGreen("The struct Name is %s",newDTnode->name);
+    #endif
+
 }
+
 
 static bool CheckAndAddInFieldList(char* fieldname, Type fieldtype, Type ptype){
     #ifdef DEBUG
@@ -173,7 +193,6 @@ Type CreateArrayType(Type basetype, unsigned int size){
     ret->kind = ARRAY;
     ret->u.array.elem = basetype;
     ret->u.array.size = (int)size;
-
     return ret;
 }
 
@@ -189,6 +208,73 @@ Item * GetItemByName(char* name,int curdeep){
         tmp = tmp->rownext;
     }
     return NULL;
+}
+
+//添加变量项
+bool CreateAndAddVarInTable(char* name, Type this_type, int deep, int row){
+    #ifdef DEBUG
+    Log("In Add Variable In Table with name: %s, type: %d, deep: %d, row: %d"
+        ,name,this_type->kind,deep,row);
+    #endif
+
+    //插入HashTable
+    int num = Hash_pjw(name);
+    if(Hashtable[num] == NULL){
+        #ifdef DEBUG
+        LogGreen("Hashtable[num] is NULL with num: %d",num);
+        #endif
+        Item * newvar  = (Item *)malloc(sizeof(Item));
+        memset(newvar,0,sizeof(Item));
+        newvar->symkind = VARIABLE;
+        newvar->name = name;
+        newvar->type = this_type;
+        newvar->rownum = row;
+        newvar->deep = deep;
+        Hashtable[num] = newvar;
+    }
+    else{
+        Item * Rptr = Hashtable[num];
+        while(Rptr != NULL){
+            if(Rptr->deep < deep)
+                break;
+            if(Rptr->deep == deep && strcmp(Rptr->name,name) == 0)
+                return false;
+            Rptr = Rptr->rownext;
+        }
+        Item * newvar  = (Item *)malloc(sizeof(Item));
+        memset(newvar,0,sizeof(Item));
+        newvar->symkind = VARIABLE;
+        newvar->name = name;
+        newvar->type = this_type;
+        newvar->rownum = row;
+        newvar->deep = deep;
+        newvar->rownext = Hashtable[num];
+        Hashtable[num] = newvar;
+    }
+
+    //插入Stack
+    struct SymStack * Chead = Stackhead;
+    while(Chead != NULL && Chead->deep >= deep){
+        if(Chead->deep == deep){
+            //找到了对应的列
+            Hashtable[num]->colnext = Chead->Iptr;
+            Chead->Iptr = Hashtable[num];
+            return true;
+        }
+        Chead = Chead->next;
+    }
+    #ifdef DEBUG
+    LogGreen("Stackhead is NULL");
+    #endif
+    //Chead为空或者Chead->deep < deep
+    struct SymStack * newhead = (struct SymStack *)malloc(sizeof(struct SymStack));
+    memset(newhead,0,sizeof(struct SymStack));
+    newhead->next = Chead;
+    newhead->Iptr = Hashtable[num];
+    newhead->deep = deep;
+    Stackhead = newhead;
+    return true;
+
 }
 
 

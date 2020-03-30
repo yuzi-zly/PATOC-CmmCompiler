@@ -3,7 +3,7 @@
 #include "DataType.h"
 #include <stdbool.h>
 
-//#define DEBUG
+// #define DEBUG
 
 struct FuncInfo
 {
@@ -15,14 +15,15 @@ struct FuncInfo
 typedef struct SymItem Item;
 struct SymItem
 {
-    enum {FUNCTION, VARIABLE, CONST, USER_DEF} symkind;
+    enum {FUNCTION, VARIABLE, CONST} symkind;
     struct FuncInfo funcinfo;
     char* name;
     Type type;
-    int dimension; //for array
+    //int dimension; //for array
     int paramnums; //for function
-    int fieldnums; //for struct
-    union Val value;
+    //int fieldnums; //for struct
+    //union Val value;
+    int rownum;
     int deep;
     Item * rownext;
     Item * colnext;
@@ -33,7 +34,8 @@ char *GetAStructName();
 
 
 /*----------------------- DTtable ---------------------------*/
-Type GetTypeByName(char* name);
+Type GetTypeByName(char* name, int deep);
+struct DTNode * GetDTNodeByName(char* name);
 Type CreateAndAddDTNodeForBasic(char* str);
 void CreateAndAddDTNodeForStruct(char* name, int structnum, int deep);
 bool AddFieldInStruct(int structnum, char* fieldname, Type fieldtype);
@@ -42,3 +44,4 @@ Type CreateArrayType(Type basetype, unsigned int size);
 
 /*----------------------- Symtable ---------------------------*/
 Item * GetItemByName(char* name,int curdeep);
+bool CreateAndAddVarInTable(char* name, Type this_type, int deep, int row);

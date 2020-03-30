@@ -36,11 +36,22 @@ void AnalasysForVarDec(struct Node* ptr,Type this_type, int _structnum){
                 fprintf(stderr,"Error type 15 at Line %d: Redefined field \" %s \".\n",child1->row,child1->value.type_string);
                 return;
             }
+            //是否要添加到符号表
         }
+        //这里添加函数
         else{
-            TODO();
+            //检查所有符号表中相同深度的结构体
+            struct DTNode* dtnode = GetDTNodeByName(child1->value.type_string);
+            if(dtnode != NULL && dtnode->deep == basedeep){
+                fprintf(stderr,"Error type 3 at Line %d:  Redefined variable \" %s \".\n",child1->row,child1->value.type_string);
+                return;
+            }
+            //添加到HashTable中，期间检查是否有同名变量
+            if(!CreateAndAddVarInTable(child1->value.type_string, this_type, basedeep, child1->row)){
+                fprintf(stderr,"Error type 3 at Line %d:  Redefined variable \" %s \".\n",child1->row,child1->value.type_string);
+                return;
+            }
         }
-        
     }
     else {
         //数组定义
@@ -143,7 +154,7 @@ Type AnalasysForStruct(struct Node* ptr){
         * STRUCT Tag
         * 定义该结构体类型的变量
         */
-        ret = GetTypeByName(child2->value.type_string);
+        ret = GetTypeByName(child2->child->value.type_string, basedeep);
         return ret;
     }
     else{
@@ -157,41 +168,47 @@ Type AnalasysForStruct(struct Node* ptr){
             //创建新结构体
             structdeep++;
             structnum++;
-            CreateAndAddDTNodeForStruct(defualt_name, structnum, basedeep);
+            CreateAndAddDTNodeForStruct(defualt_name, structnum, structdeep - 1);
             AnalasysForDefList(child3, structnum);
             //建完结构体
-            structdeep--;
-            ret = GetTypeByName(defualt_name);
+            ret = GetTypeByName(defualt_name, structdeep - 1);
             Assert(ret,"build struct error.");
+            structdeep--;
             return ret;
         }
         else{
             struct Node* id = child2->child;
-            if(GetTypeByName(id->value.type_string)){
-                fprintf(stderr,"Error type 16 at Line %d: Redefined struct \" %s \".\n",id->row,id->value.type_string);
-                return NULL;
+            //不是嵌套在struct中
+            if(structdeep == basedeep){
+                if(GetTypeByName(id->value.type_string, basedeep)){
+                    fprintf(stderr,"Error type 16 at Line %d: Redefined struct \" %s \".\n",id->row,id->value.type_string);
+                    return NULL;
+                }
+                //检查是否和Item的名字相同
+                if(GetItemByName(id->value.type_string, basedeep)){
+                    fprintf(stderr,"Error type 16 at Line %d: Redefined \" %s \".\n",id->row,id->value.type_string);
+                    return NULL;
+                }
             }
-            //检查是否和Item的名字相同
-            if(GetItemByName(id->value.type_string,basedeep)){
-                fprintf(stderr,"Error type 16 at Line %d: Redefined struct \" %s \".\n",id->row,id->value.type_string);
-                return NULL;
+            else{
+                //嵌套在struct中，但无该类错误，所以不检测了.
             }
             
             //无重定义,创建新结构体类型
             structdeep++;
             structnum++;
-            CreateAndAddDTNodeForStruct(id->value.type_string, structnum, basedeep);
+            CreateAndAddDTNodeForStruct(id->value.type_string, structnum, structdeep - 1);
 #ifdef DEBUG
-            Log("After Create Struct Node");
+            LogYellow("After Create Struct Node");
 #endif
             AnalasysForDefList(child3->brother, structnum);
 #ifdef DEBUG
             Log("After Analasys From DefList");
 #endif
             //建完结构体
-            structdeep--;
-            ret = GetTypeByName(id->value.type_string);
+            ret = GetTypeByName(id->value.type_string, structdeep - 1);
             Assert(ret,"build struct error.");
+            structdeep--;
 #ifdef DEBUG
             Log("Get First Struct type");
 #endif
@@ -212,7 +229,7 @@ Type AnalasysForSpecifier(struct Node* ptr){
     struct Node* child = ptr->child;
     Type ret = NULL;
     if(strcmp(child->name,"TYPE") == 0){
-        ret = GetTypeByName(child->value.type_string);
+        ret = GetTypeByName(child->value.type_string, basedeep);
         if(ret == NULL)
             ret = CreateAndAddDTNodeForBasic(child->value.type_string);
         return ret;
