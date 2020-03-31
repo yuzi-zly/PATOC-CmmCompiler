@@ -68,11 +68,12 @@ char *GetAStructName(){
 }
 
 /*----------------------- DTtable ---------------------------*/
-Type GetTypeByName(char* name, int deep){
+Type GetTypeByName(char* name){
     struct DTNode * ptr = DThead;
     while(ptr != NULL){
-        if(strcmp(name,ptr->name) == 0 && ptr->deep <= deep)
+        if(strcmp(name,ptr->name) == 0){
             return &(ptr->type_);
+        }     
         ptr = ptr->next;
     }
     return NULL;
@@ -96,7 +97,6 @@ Type CreateAndAddDTNodeForBasic(char* str){
 
     strncpy(newDTnode->name, str, strlen(str));
     newDTnode->struct_num = 0;
-    newDTnode->deep = 0;
     newDTnode->type_.kind = BASIC;
     newDTnode->type_.u.basic = strcmp(str,"int") == 0 ? 0 : 1;
 
@@ -107,12 +107,11 @@ Type CreateAndAddDTNodeForBasic(char* str){
     
 }
 
-void CreateAndAddDTNodeForStruct(char* name, int structnum, int deep){
+void CreateAndAddDTNodeForStruct(char* name, int structnum){
     struct DTNode* newDTnode = (struct DTNode*)malloc(sizeof(struct DTNode));
     memset(newDTnode,0,sizeof(struct DTNode));
     strncpy(newDTnode->name, name, strlen(name));
     newDTnode->struct_num = structnum;
-    newDTnode->deep = deep;
     newDTnode->type_.kind = STRUCTURE;
     newDTnode->type_.u.structure = NULL;
 

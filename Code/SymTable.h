@@ -34,10 +34,10 @@ char *GetAStructName();
 
 
 /*----------------------- DTtable ---------------------------*/
-Type GetTypeByName(char* name, int deep);
+Type GetTypeByName(char* name);
 struct DTNode * GetDTNodeByName(char* name);
 Type CreateAndAddDTNodeForBasic(char* str);
-void CreateAndAddDTNodeForStruct(char* name, int structnum, int deep);
+void CreateAndAddDTNodeForStruct(char* name, int structnum);
 bool AddFieldInStruct(int structnum, char* fieldname, Type fieldtype);
 Type CreateArrayType(Type basetype, unsigned int size);
 

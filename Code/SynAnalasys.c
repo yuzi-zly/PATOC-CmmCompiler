@@ -23,9 +23,9 @@ static int structnum = 0;//第几个结构体
 
 // for VarDec
 void AnalasysForVarDec(struct Node* ptr,Type this_type, int _structnum){
-#ifdef DEBUG
-    Log("In the VarDec with type %d, structnum %d",this_type->kind,_structnum);
-#endif
+    #ifdef DEBUG
+        Log("In the VarDec with type %d, structnum %d",this_type->kind,_structnum);
+    #endif
 
     Assert(strcmp(ptr->name,"VarDec") == 0,"wrong at AnalasysForVarDec");
     struct Node* child1 = ptr->child;
@@ -40,12 +40,12 @@ void AnalasysForVarDec(struct Node* ptr,Type this_type, int _structnum){
         }
         //这里添加函数
         else{
-            //检查所有符号表中相同深度的结构体
-            struct DTNode* dtnode = GetDTNodeByName(child1->value.type_string);
-            if(dtnode != NULL && dtnode->deep == basedeep){
-                fprintf(stderr,"Error type 3 at Line %d:  Redefined variable \" %s \".\n",child1->row,child1->value.type_string);
+            //查找结构体名不为空，冲突
+            if(GetTypeByName(child1->value.type_string) != NULL){
+                fprintf(stderr,"Error type 3 at Line %d: Redefined variable \" %s \".\n",child1->row,child1->value.type_string);
                 return;
             }
+
             //添加到HashTable中，期间检查是否有同名变量
             if(!CreateAndAddVarInTable(child1->value.type_string, this_type, basedeep, child1->row)){
                 fprintf(stderr,"Error type 3 at Line %d:  Redefined variable \" %s \".\n",child1->row,child1->value.type_string);
@@ -64,9 +64,9 @@ void AnalasysForVarDec(struct Node* ptr,Type this_type, int _structnum){
 
 // for Dec
 void AnalasysForDec(struct Node* ptr, Type this_type, int _structnum){
-#ifdef DEBUG
-    Log("In the Dec with type %d, structnum %d",this_type->kind,_structnum);
-#endif
+    #ifdef DEBUG
+        Log("In the Dec with type %d, structnum %d",this_type->kind,_structnum);
+    #endif
 
     Assert(strcmp(ptr->name,"Dec") == 0,"wrong at AnalasysForDec");
     struct Node* vardec = ptr->child;
@@ -82,15 +82,16 @@ void AnalasysForDec(struct Node* ptr, Type this_type, int _structnum){
         fprintf(stderr,"Error type 15 at Line %d: Assigned variable whlie defining a struct.\n",exp->row);
         return;
     }
+    //函数内定义
     TODO();
 }
 
 
 // for DecList
 void AnalasysForDecList(struct Node* ptr, Type this_type, int _structnum){
-#ifdef DEBUG
-    Log("In the DecList with type %d, structnum %d",this_type->kind,_structnum);
-#endif
+    #ifdef DEBUG
+        Log("In the DecList with type %d, structnum %d",this_type->kind,_structnum);
+    #endif
 
     Assert(strcmp(ptr->name,"DecList") == 0,"wrong at AnalasysForDecList");
     struct Node* dec = ptr->child;
@@ -102,9 +103,9 @@ void AnalasysForDecList(struct Node* ptr, Type this_type, int _structnum){
 
 // for Def
 void AnalasysForDef(struct Node* ptr, int _structnum){
-#ifdef DEBUG
-    Log("In the Def with structnum %d",_structnum);
-#endif
+    #ifdef DEBUG
+        Log("In the Def with structnum %d",_structnum);
+    #endif
 
     Assert(strcmp(ptr->name,"Def") == 0,"wrong at AnalasysForDef");
     struct Node* specifier  = ptr->child;
@@ -112,16 +113,24 @@ void AnalasysForDef(struct Node* ptr, int _structnum){
     // struct Node* semi = declist->brother;
 
     Type curtype = AnalasysForSpecifier(specifier);
-    if(curtype == NULL)
+    if(curtype == NULL){
+        struct Node* tmp = specifier->child->child->brother;
+        if(strcmp(tmp->name,"Tag") != 0){
+            //说明是报错
+            return;
+        } 
+        fprintf(stderr,"Error type 17 at Line %d: Undefined struct \" %s \".\n",tmp->row,tmp->child->value.type_string);
         return;
+    }
+        
     AnalasysForDecList(declist,curtype,_structnum);
 }
 
 // for DefList
 void AnalasysForDefList(struct Node* ptr, int _structnum){
-#ifdef DEBUG
-    Log("In the DefList with structnum %d",_structnum);
-#endif
+    #ifdef DEBUG
+        Log("In the DefList with structnum %d",_structnum);
+    #endif
 
     if(ptr == NULL)
         return;
@@ -130,18 +139,18 @@ void AnalasysForDefList(struct Node* ptr, int _structnum){
     struct Node* deflist = def->brother;
 
     AnalasysForDef(def, _structnum);
-#ifdef DEBUG
-    Log("After Def");
-#endif
+    #ifdef DEBUG
+        Log("After Def");
+    #endif
     AnalasysForDefList(deflist, _structnum);
 }
 
 
 // for Struct
 Type AnalasysForStruct(struct Node* ptr){
-#ifdef DEBUG
-    Log("In the Struct");
-#endif
+    #ifdef DEBUG
+        Log("In the Struct");
+    #endif
 
     Assert(strcmp(ptr->name,"StructSpecifier") == 0,"wrong at AnalasysForStruct");
     struct Node* child1 = ptr->child;
@@ -154,7 +163,7 @@ Type AnalasysForStruct(struct Node* ptr){
         * STRUCT Tag
         * 定义该结构体类型的变量
         */
-        ret = GetTypeByName(child2->child->value.type_string, basedeep);
+        ret = GetTypeByName(child2->child->value.type_string);
         return ret;
     }
     else{
@@ -168,50 +177,48 @@ Type AnalasysForStruct(struct Node* ptr){
             //创建新结构体
             structdeep++;
             structnum++;
-            CreateAndAddDTNodeForStruct(defualt_name, structnum, structdeep - 1);
+            CreateAndAddDTNodeForStruct(defualt_name, structnum);
             AnalasysForDefList(child3, structnum);
             //建完结构体
-            ret = GetTypeByName(defualt_name, structdeep - 1);
+            ret = GetTypeByName(defualt_name);
             Assert(ret,"build struct error.");
             structdeep--;
             return ret;
         }
         else{
             struct Node* id = child2->child;
-            //不是嵌套在struct中
-            if(structdeep == basedeep){
-                if(GetTypeByName(id->value.type_string, basedeep)){
-                    fprintf(stderr,"Error type 16 at Line %d: Redefined struct \" %s \".\n",id->row,id->value.type_string);
-                    return NULL;
-                }
-                //检查是否和Item的名字相同
-                if(GetItemByName(id->value.type_string, basedeep)){
-                    fprintf(stderr,"Error type 16 at Line %d: Redefined \" %s \".\n",id->row,id->value.type_string);
-                    return NULL;
+            //检查是否重名结构体
+            if(GetTypeByName(id->value.type_string) != NULL){
+                fprintf(stderr,"Error type 16 at Line %d: Redefined struct \" %s \".\n",id->row,id->value.type_string);
+                return NULL;
+            }
+            //检查是否和Item的名字相同，注意此时要考虑的Item的deep <= basedeep.
+            for(int tmpdeep = basedeep; tmpdeep >= 0; --tmpdeep){
+                    if(GetItemByName(id->value.type_string, tmpdeep) != NULL){
+                        fprintf(stderr,"Error type 16 at Line %d: Redefined \" %s \".\n",id->row,id->value.type_string);
+                        return NULL;
                 }
             }
-            else{
-                //嵌套在struct中，但无该类错误，所以不检测了.
-            }
+            
             
             //无重定义,创建新结构体类型
             structdeep++;
             structnum++;
-            CreateAndAddDTNodeForStruct(id->value.type_string, structnum, structdeep - 1);
-#ifdef DEBUG
-            LogYellow("After Create Struct Node");
-#endif
+            CreateAndAddDTNodeForStruct(id->value.type_string, structnum);
+    #ifdef DEBUG
+                LogYellow("After Create Struct Node");
+    #endif
             AnalasysForDefList(child3->brother, structnum);
-#ifdef DEBUG
-            Log("After Analasys From DefList");
-#endif
+    #ifdef DEBUG
+                Log("After Analasys From DefList");
+    #endif
             //建完结构体
-            ret = GetTypeByName(id->value.type_string, structdeep - 1);
+            ret = GetTypeByName(id->value.type_string);
             Assert(ret,"build struct error.");
             structdeep--;
-#ifdef DEBUG
-            Log("Get First Struct type");
-#endif
+    #ifdef DEBUG
+                Log("Get First Struct type");
+    #endif
             return ret;
         }
             
@@ -221,15 +228,15 @@ Type AnalasysForStruct(struct Node* ptr){
 
 // for Specifier
 Type AnalasysForSpecifier(struct Node* ptr){
-#ifdef DEBUG
-    Log("In the Specifier");
-#endif
+    #ifdef DEBUG
+        Log("In the Specifier");
+    #endif
 
     Assert(strcmp(ptr->name,"Specifier") == 0,"wrong at AnalasysForSpecifier");
     struct Node* child = ptr->child;
     Type ret = NULL;
     if(strcmp(child->name,"TYPE") == 0){
-        ret = GetTypeByName(child->value.type_string, basedeep);
+        ret = GetTypeByName(child->value.type_string);
         if(ret == NULL)
             ret = CreateAndAddDTNodeForBasic(child->value.type_string);
         return ret;
@@ -255,9 +262,9 @@ void AnalasysForExtDecList(struct Node* ptr, Type this_type){
 
 // for ExtDef
 void AnalasysForExtDef(struct Node* ptr){
-#ifdef DEBUG
-    Log("In the ExtDef");
-#endif
+    #ifdef DEBUG
+        Log("In the ExtDef");
+    #endif
 
     Assert(strcmp(ptr->name,"ExtDef") == 0,"wrong at AnalasysForExtDef");
     struct Node* specifier = ptr->child;
@@ -294,9 +301,9 @@ void AnalasysForExtDef(struct Node* ptr){
 
 // for ExtDefList
 void AnalasysBegins(struct Node* ptr){
-#ifdef DEBUG
-    Log("In the Begins");
-#endif
+    #ifdef DEBUG
+        Log("In the Begins");
+    #endif
 
     if(ptr == NULL)
         return;

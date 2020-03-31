@@ -23,7 +23,6 @@ struct DTNode
 {
     char name[50];
     int struct_num;
-    int deep;// only for struct
     struct Type_ type_;
     struct DTNode* next;
 };

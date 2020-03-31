@@ -28,6 +28,8 @@ int main()
     a[1] = 4; 
     a[2] = 3; 
     a[3]] = 1;
+    a[3] = 1;
+    a[3] = 1;
     int n = 4;
     shsort(a, n); 
     return 0;
