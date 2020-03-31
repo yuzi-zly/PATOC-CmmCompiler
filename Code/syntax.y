@@ -316,7 +316,8 @@ Def :   Specifier DecList SEMI {
             root = $$;
         }
     |   Specifier DecList error { print_flag = 0; }
-    |   error SEMI  { print_flag = 0; }
+    |   error DecList SEMI  { print_flag = 0; }
+    |   Specifier error SEMI {print_flag = 0; }
     ;
 DecList :   Dec {
                 $$ = Create("DecList",@1.first_line,1);
@@ -343,6 +344,8 @@ Dec :   VarDec {
             AddNode($$,$3);
             root = $$;
         }
+    |   error ASSIGNOP Exp {print_flag = 0;}
+    |   VarDec ASSIGNOP error {print_flag = 0;}
     ;
 
 /* Expressions */
@@ -353,6 +356,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp ASSIGNOP error {print_flag = 0;}
     |   Exp AND Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -360,6 +364,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp AND error {print_flag = 0;}
     |   Exp OR Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -367,6 +372,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp OR error {print_flag = 0;}
     |   Exp RELOP Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -374,6 +380,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp RELOP error {print_flag = 0;}
     |   Exp PLUS Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -381,6 +388,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp PLUS error {print_flag = 0;}
     |   Exp MINUS Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -388,6 +396,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp MINUS error {print_flag = 0;}
     |   Exp STAR Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -395,6 +404,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp STAR error {print_flag = 0;}
     |   Exp DIV Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -402,6 +412,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp DIV error {print_flag = 0;}
     |   LP Exp RP {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -409,18 +420,21 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   LP error RP { print_flag = 0; }
     |   MINUS Exp %prec HIGHER_THAN_MINUS {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
             AddNode($$,$2);
             root = $$;
         }
+    |   MINUS error %prec HIGHER_THAN_MINUS { print_flag = 0;}
     |   NOT Exp {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
             AddNode($$,$2);
             root = $$;
         }
+    |   NOT error { print_flag = 0; }
     |   ID LP Args RP {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -429,6 +443,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$4);
             root = $$;
         }
+    |   ID LP error RP { print_flag = 0; }
     |   ID LP RP {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -444,6 +459,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$4);
             root = $$;
         }
+    |   Exp LB error RB { print_flag = 0; }
     |   Exp DOT ID {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -451,6 +467,7 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$3);
             root = $$;
         }
+    |   Exp DOT error {print_flag = 0;}
     |   ID {
             $$ = Create("Exp",@1.first_line,1);
             AddNode($$,$1);
@@ -466,9 +483,6 @@ Exp :   Exp ASSIGNOP Exp {
             AddNode($$,$1);
             root = $$;
         }
-    |   Exp LB error RB { print_flag = 0; }
-    |   LP error RP { print_flag = 0; }
-    |   ID LP error RP { print_flag = 0; }
     ;
 Args :  Exp COMMA Args {
             $$ = Create("Args",@1.first_line,1);
@@ -482,6 +496,7 @@ Args :  Exp COMMA Args {
             AddNode($$,$1);
             root = $$;
         }
+    |   Exp COMMA error {print_flag = 0;}
     ;
 
 %%
