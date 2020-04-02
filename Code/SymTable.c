@@ -5,29 +5,22 @@
 #include "SymTable.h"
 #include "debug.h"
 
-#define HTSIZE 0x3ff
-
-Item * Hashtable[HTSIZE];
+/* Item */
+Item* Hashtable[HTSIZE];
 struct SymStack{
-    Item * Iptr;
+    Item* Iptr;
     int deep;
-    struct SymStack * next;
+    struct SymStack* next;
 } *Stackhead;
 
+/* DataType */
 struct DTNode *DThead;
 
-unsigned int Hash_pjw(char* name){
-    unsigned int val = 0 , i;
-    for(; *name; ++name){
-        val = (val << 2) + *name;
-        if(i = val & ~HTSIZE)
-            val = (val ^ (i >> 12)) & HTSIZE;
-    }
-    return val;
-}
+/* Funcitem */
+Item* FuncList[HTSIZE];
 
 /*---------------------- Others ----------------------------*/
-char * myitoa(int num, char* str){
+char* myitoa(int num, char* str){
     int i = 0;
     do
     {
@@ -50,7 +43,15 @@ char * myitoa(int num, char* str){
     return str;
 }
 
-
+unsigned int Hash_pjw(char* name){
+    unsigned int val = 0 , i;
+    for(; *name; ++name){
+        val = (val << 2) + *name;
+        if(i = val & ~HTSIZE)
+            val = (val ^ (i >> 12)) & HTSIZE;
+    }
+    return val;
+}
 
 char *GetAStructName(){
     static int cnt = 0;
@@ -69,7 +70,7 @@ char *GetAStructName(){
 
 /*----------------------- DTtable ---------------------------*/
 Type GetTypeByName(char* name){
-    struct DTNode * ptr = DThead;
+    struct DTNode* ptr = DThead;
     while(ptr != NULL){
         if(strcmp(name,ptr->name) == 0){
             return &(ptr->type_);
@@ -80,7 +81,7 @@ Type GetTypeByName(char* name){
 }
 
 struct DTNode * GetDTNodeByName(char* name){
-    struct DTNode * ptr = DThead;
+    struct DTNode* ptr = DThead;
     while(ptr != NULL){
         if(strcmp(name,ptr->name) == 0)
             return ptr;
@@ -90,12 +91,16 @@ struct DTNode * GetDTNodeByName(char* name){
 }
 
 Type CreateAndAddDTNodeForBasic(char* str){
+    #ifdef DEBUG
+    Log("In Create Add DTNode for Basic");
+    #endif
+
     Assert((strcmp(str,"int") == 0)||((strcmp(str,"float") == 0)),"Wrong Basic Type.");
 
     struct DTNode* newDTnode = (struct DTNode*)malloc(sizeof(struct DTNode));
     memset(newDTnode,0,sizeof(struct DTNode));
 
-    strncpy(newDTnode->name, str, strlen(str));
+    newDTnode->name = str;
     newDTnode->struct_num = 0;
     newDTnode->type_.kind = BASIC;
     newDTnode->type_.u.basic = strcmp(str,"int") == 0 ? 0 : 1;
@@ -107,24 +112,23 @@ Type CreateAndAddDTNodeForBasic(char* str){
     
 }
 
-void CreateAndAddDTNodeForStruct(char* name, int structnum){
+//创建结构体DT结点
+struct DTNode* CreateDTNodeForStruct(char* name, int structnum){
     struct DTNode* newDTnode = (struct DTNode*)malloc(sizeof(struct DTNode));
     memset(newDTnode,0,sizeof(struct DTNode));
-    strncpy(newDTnode->name, name, strlen(name));
+    newDTnode->name = name;
     newDTnode->struct_num = structnum;
     newDTnode->type_.kind = STRUCTURE;
     newDTnode->type_.u.structure = NULL;
-
-    struct DTNode* tmp = DThead;
-    newDTnode->next = tmp;
-    DThead = newDTnode;
-
-    #ifdef DEBUG
-        LogGreen("The struct Name is %s",newDTnode->name);
-    #endif
-
+    return newDTnode;
 }
 
+//添加完整的结构体
+void AddDTNodeForStruct(struct DTNode* structnode){
+    struct DTNode* tmp = DThead;
+    structnode->next = tmp;
+    DThead = structnode;
+}
 
 static bool CheckAndAddInFieldList(char* fieldname, Type fieldtype, Type ptype){
     #ifdef DEBUG
@@ -166,24 +170,14 @@ static bool CheckAndAddInFieldList(char* fieldname, Type fieldtype, Type ptype){
     return true;
 }
 
-bool AddFieldInStruct(int structnum, char* fieldname, Type fieldtype){
+bool AddFieldInStruct(struct DTNode* structnode, char* fieldname, Type fieldtype){
     #ifdef DEBUG
     Log("In Add Field In Struct with name %s, type %d",fieldname,fieldtype->kind);
     #endif
 
-    Assert(structnum != 0,"Cannot add a field in Basic or Array.");
-    struct DTNode* DTptr = DThead;
-    while(DTptr != NULL){
-        if(DTptr->struct_num == structnum){
-    #ifdef DEBUG
-            Log("Meet the struct");
-    #endif
-            return CheckAndAddInFieldList(fieldname, fieldtype,
-                     &(DTptr->type_));
-        }
-        DTptr = DTptr->next;
-    }
-    Assert(0,"Need to creat DTNode before add field");
+    Assert(structnode != NULL,"Cannot add a field in Basic or Array.");
+    return CheckAndAddInFieldList(fieldname,fieldtype,&(structnode->type_));
+   
 }
 
 Type CreateArrayType(Type basetype, unsigned int size){
@@ -195,10 +189,59 @@ Type CreateArrayType(Type basetype, unsigned int size){
     return ret;
 }
 
+//用于检测两种类型之间是否等价
+bool CheckTypes(Type type1, Type type2){
+    #ifdef DEBUG
+    LogYellow("In CheckTypes with type1 %d, type2 %d",type1->kind,type2->kind);
+    #endif
+
+    if(type1->kind != type2->kind)
+        return false;
+    if(type1->kind == BASIC){
+        if(type1->u.basic != type2->u.basic)
+            return false;
+        else
+            return true;
+    }
+    else if(type1->kind == ARRAY){
+        return CheckTypes(type1->u.array.elem, type2->u.array.elem);
+    }
+    else if(type1->kind ==STRUCTURE){
+        FieldList slist1 = type1->u.structure;
+        FieldList slist2 = type2->u.structure;
+        while (slist1 != NULL && slist2 != NULL)
+        {
+            if(CheckTypes(slist1->type, slist2->type) == false)
+                return false;
+            slist1 = slist1->tail;
+            slist2 = slist2->tail;
+        }    
+        if(slist1 == NULL && slist2 == NULL)
+            return true;
+        return false;
+    }
+    else
+        Assert(0,"No such Type kind");
+
+}
+
+//用于得到结构体域的类型
+Type FindFieldInStruct(Type this_type, char* fieldname){
+    #ifdef DEBUG
+    Log("In Find Field In Struct with fieldname %s.",fieldname);
+    #endif
+    FieldList plist = this_type->u.structure;
+    while(plist != NULL){
+        if(strcmp(plist->name,fieldname) == 0)
+            return plist->type;
+        plist = plist->tail;
+    }
+    return NULL;
+}
 
 
 /*----------------------- Symtable ---------------------------*/
-Item * GetItemByName(char* name,int curdeep){
+Item* GetItemByName(char* name,int curdeep){
     int pos = Hash_pjw(name);
     Item *tmp = Hashtable[pos];
     while(tmp != NULL){
@@ -276,12 +319,128 @@ bool CreateAndAddVarInTable(char* name, Type this_type, int deep, int row){
 
 }
 
+//创造一个函数项
+Item* CreateFunctionItem(int funcnum, char* funcname, Type functype, int mode, int deep, int rownum){
+    #ifdef DEBUG
+    LogPurple("In Create Function Item,with funcnum %d,funcname %s, functype %d, mode %d"
+            ,funcnum,funcname,functype->kind,mode);
+    #endif
+
+    Item * newfunc = (Item *)malloc(sizeof(Item));
+    memset(newfunc,0,sizeof(Item));
+    newfunc->symkind = FUNCTION;
+    newfunc->func_num = funcnum;
+    newfunc->name = funcname;
+    newfunc->type = functype;
+    newfunc->rownum = rownum;
+    newfunc->deep = deep;
+    newfunc->funcinfo = (struct FuncInfo*)malloc(sizeof(struct FuncInfo));
+    memset(newfunc->funcinfo,0,sizeof(struct FuncInfo));
+    newfunc->funcinfo->status = mode;
+
+    return newfunc;
+}
+
+//将函数项添加到表中
+void AddFuncItemInTable(Item* funcitem,int deep){
+    #ifdef DEBUG
+        LogPurple("In the Add Func Item In Table with funcnum %d,funcname %s, functype %d"
+            ,funcitem->func_num,funcitem->name,funcitem->type->kind);
+    #endif
+
+    //函数数组插入
+    FuncList[funcitem->func_num] = funcitem;
+
+    //行插入
+    int num = Hash_pjw(funcitem->name);
+    funcitem->rownext = Hashtable[num];
+    Hashtable[num] = funcitem;
+
+    //列插入
+    struct SymStack *Chead = Stackhead;
+    while(Chead != NULL && Chead->deep >= deep){
+        if(Chead->deep == deep){
+            //找到对应列
+            Hashtable[num]->colnext = Chead->Iptr;
+            Chead->Iptr = Hashtable[num];
+            return;
+        }
+        Chead = Chead->next;
+    }
+    #ifdef DEBUG
+    LogGreen("Stackhead is NULL");
+    #endif
+    //Chead为空或者Chead->deep < deep
+    struct SymStack * newhead = (struct SymStack *)malloc(sizeof(struct SymStack));
+    memset(newhead,0,sizeof(struct SymStack));
+    newhead->next = Chead;
+    newhead->Iptr = Hashtable[num];
+    newhead->deep = deep;
+    Stackhead = newhead;
+    return;
+}
+
+//添加函数参数
+void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype){
+    #ifdef DEBUG
+    LogPurple("In Add Param In Func with funcnum %d, paramname %s, paramtype %d"
+        ,funcitem->func_num,paramname,paramtype->kind);
+    #endif
+
+    funcitem->paramnums++;
+    FieldList newparam = (FieldList)malloc(sizeof(struct FieldList_));
+    memset(newparam,0,sizeof(struct FieldList_));
+    newparam->name = paramname;
+    newparam->type = paramtype;
+    FieldList plist = funcitem->funcinfo->params;
+    if(plist == NULL){
+        funcitem->funcinfo->params = newparam;
+        return;
+    }
+    while(plist->tail != NULL){
+        plist = plist->tail;
+    }
+    plist->tail = newparam;
+    return;
+}
 
 
+//多次声明或者定义检查函数参数
+bool CheckParamInFunc(Item* funcitem, Type paramtype, int pnum){
+    #ifdef DEBUG
+    LogPurple("In Check Param In Func with funcnum %d, paramtype %d, pnum %d"
+        ,funcitem->func_num,paramtype->kind,pnum);
+    #endif
 
+    FieldList plist = funcitem->funcinfo->params;
+    Assert(plist != NULL, "The plist is NULL");
+    for(int i = 1; i < pnum; i++){
+        plist = plist->tail;
+    }
+    if(plist == NULL)
+        return false;
+    if(CheckTypes(plist->type,paramtype))
+        return true;
+    return false;
+}
 
+//调用时检查函数参数
+bool CheckArgInFunc(Item* funcitem, Type argtype, int pnum){
+    #ifdef DEBUG
+    LogPurple("In Check Arg In Func with funcnum %d, argtype %d, pnum %d"
+        ,funcitem->func_num,argtype->kind,pnum);
+    #endif
 
-
-
+    FieldList plist = funcitem->funcinfo->params;
+    Assert(plist != NULL, "The plist is NULL");
+    for(int i = 1; i < pnum; i++){
+        plist = plist->tail;
+    }
+    if(plist == NULL)
+        return false;
+    if(CheckTypes(plist->type, argtype))
+        return true;
+    return false;
+}
 
 

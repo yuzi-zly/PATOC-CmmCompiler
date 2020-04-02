@@ -10,6 +10,7 @@ struct Type_
         struct {Type elem; int size;} array;
         FieldList structure;
     } u;
+    //char* struct_name;//用于嵌套下的域名结构体名对比
 };
 
 struct FieldList_
@@ -21,7 +22,7 @@ struct FieldList_
 
 struct DTNode
 {
-    char name[50];
+    char* name;
     int struct_num;
     struct Type_ type_;
     struct DTNode* next;
