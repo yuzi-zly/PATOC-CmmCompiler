@@ -1,10 +1,5 @@
-int func(){
-	struct A{
-		int x;
-	}z;
-}
+int func(int a,int b);
+int func(int a,int a);
 
 int main(){
-	struct A a;
-	a.x = 1;
 }

@@ -448,7 +448,7 @@ void ExchangeFuncItem(Item* olditem, Item* newitem){
 }
 
 //添加函数参数
-void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype){
+void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype, int paramrow){
     #ifdef DEBUG
     LogPurple("In Add Param In Func with funcnum %d, paramname %s, paramtype %d, paranum %d"
         ,funcitem->func_num,paramname,paramtype->kind,funcitem->paramnums+1);
@@ -465,7 +465,14 @@ void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype){
         return;
     }
     while(plist->tail != NULL){
+        //检查参数是否同名
+        if(strcmp(paramname,plist->name) == 0){
+            fprintf(stderr,"Error type 3 at Line %d: Redefined variable \" %s \".\n",paramrow,paramname);
+        }
         plist = plist->tail;
+    }
+    if(strcmp(paramname,plist->name) == 0){
+            fprintf(stderr,"Error type 3 at Line %d: Redefined variable \" %s \".\n",paramrow,paramname);
     }
     plist->tail = newparam;
     return;
@@ -474,7 +481,7 @@ void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype){
 
 //多次声明或者定义检查函数参数
 //并将名字改为最后一次
-bool CheckParamInFunc(Item* funcitem, char* paramname, Type paramtype, int pnum){
+bool CheckParamInFunc(Item* funcitem, char* paramname, Type paramtype, int pnum, int paramrow){
     #ifdef DEBUG
     LogPurple("In Check Param In Func with funcnum %d, paramtype %d, pnum %d"
         ,funcitem->func_num,paramtype->kind,pnum);
@@ -483,6 +490,9 @@ bool CheckParamInFunc(Item* funcitem, char* paramname, Type paramtype, int pnum)
     FieldList plist = funcitem->funcinfo->params;
     Assert(plist != NULL, "The plist is NULL");
     for(int i = 1; i < pnum; i++){
+        if(strcmp(paramname,plist->name) == 0){
+            fprintf(stderr,"Error type 3 at Line %d: Redefined variable \" %s \".\n",paramrow,paramname);
+        }
         plist = plist->tail;
     }
     if(plist == NULL)

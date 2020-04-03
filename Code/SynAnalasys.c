@@ -57,11 +57,11 @@ bool AnalasysForVarDec(struct Node* ptr,Type this_type, struct DTNode* _structno
             }
 
             if(_funcitem->funcinfo->status == NONE){
-                AddParamInFunc(_funcitem, child1->value.type_string, this_type);
+                AddParamInFunc(_funcitem, child1->value.type_string, this_type, child1->row);
                 return true;
             }
             else{
-                return CheckParamInFunc(_funcitem, child1->value.type_string, this_type, paramsnum);
+                return CheckParamInFunc(_funcitem, child1->value.type_string, this_type, paramsnum, child1->row);
             }
         }
         else{
