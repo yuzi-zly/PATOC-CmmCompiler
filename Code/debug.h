@@ -47,3 +47,8 @@
     printflog("\33[1;35m[%s,%d,%s] " format "\33[0m\n", \
         __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
+#define LogWhite(format, ...) \
+    printflog("\33[1;37m[%s,%d,%s] " format "\33[0m\n", \
+        __FILE__, __LINE__, __func__, ## __VA_ARGS__)
+
+        

@@ -70,6 +70,9 @@ char *GetAStructName(){
 
 /*----------------------- DTtable ---------------------------*/
 Type GetTypeByName(char* name){
+    #ifdef DEBUG
+    Log("In Get Type by name %s",name);
+    #endif
     struct DTNode* ptr = DThead;
     while(ptr != NULL){
         if(strcmp(name,ptr->name) == 0){
@@ -242,6 +245,9 @@ Type FindFieldInStruct(Type this_type, char* fieldname){
 
 /*----------------------- Symtable ---------------------------*/
 Item* GetItemByName(char* name,int curdeep){
+    #ifdef DEBUG
+    LogGreen("In Get Item By Name %s, deep %d",name,curdeep);
+    #endif
     int pos = Hash_pjw(name);
     Item *tmp = Hashtable[pos];
     while(tmp != NULL){
@@ -291,6 +297,7 @@ bool CreateAndAddVarInTable(char* name, Type this_type, int deep, int row){
         newvar->rownum = row;
         newvar->deep = deep;
         newvar->rownext = Hashtable[num];
+        Hashtable[num]->rowpref = newvar;
         Hashtable[num] = newvar;
     }
 
@@ -354,6 +361,8 @@ void AddFuncItemInTable(Item* funcitem,int deep){
     //行插入
     int num = Hash_pjw(funcitem->name);
     funcitem->rownext = Hashtable[num];
+    if(Hashtable[num] != NULL)
+        Hashtable[num]->rowpref = funcitem;
     Hashtable[num] = funcitem;
 
     //列插入
@@ -380,11 +389,69 @@ void AddFuncItemInTable(Item* funcitem,int deep){
     return;
 }
 
+void ExchangeFuncItem(Item* olditem, Item* newitem){
+    #ifdef DEBUG
+    LogPurple("In exchange function item with oldnum %d, newnum %d",olditem->func_num,newitem->func_num);
+    #endif
+
+    //函数数组
+    FuncList[olditem->func_num] = NULL;
+    FuncList[newitem->func_num] = newitem;
+
+    //行更换
+    int num = Hash_pjw(olditem->name);
+    if(olditem->rowpref == NULL){
+        //第一个
+        Hashtable[num] = newitem;
+        if(olditem->rownext != NULL){
+            olditem->rownext->rowpref = newitem;
+            newitem->rownext = olditem->rownext;
+            olditem->rownext = NULL;
+        }
+    }
+    else if(olditem->rownext == NULL){
+        //最后一个
+        olditem->rowpref->rownext = newitem;
+        newitem->rowpref = olditem->rowpref;
+        olditem->rowpref = NULL;
+    }
+    else{
+        olditem->rownext->rowpref = newitem;
+        olditem->rowpref->rownext = newitem;
+        newitem->rowpref = olditem->rowpref;
+        newitem->rownext = olditem->rownext;
+        olditem->rownext = olditem->rowpref = NULL;
+    }
+
+    //列更换
+    struct SymStack* Chead = Stackhead;
+    while(Chead != NULL && Chead->deep > olditem->deep){
+        Chead = Chead->next;
+    }
+    if(Chead != NULL && Chead->deep == olditem->deep){
+        Item* iptr = Chead->Iptr;
+        if(iptr == olditem){
+            iptr = newitem;
+            newitem->colnext = olditem->colnext;
+            return;
+        }    
+        while(iptr != NULL){
+            if(iptr->colnext == olditem)
+                break;
+            iptr = iptr->colnext;
+        }
+        iptr->colnext = newitem;
+        newitem->colnext = olditem;
+        return;
+    }
+
+}
+
 //添加函数参数
 void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype){
     #ifdef DEBUG
-    LogPurple("In Add Param In Func with funcnum %d, paramname %s, paramtype %d"
-        ,funcitem->func_num,paramname,paramtype->kind);
+    LogPurple("In Add Param In Func with funcnum %d, paramname %s, paramtype %d, paranum %d"
+        ,funcitem->func_num,paramname,paramtype->kind,funcitem->paramnums+1);
     #endif
 
     funcitem->paramnums++;
@@ -406,7 +473,8 @@ void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype){
 
 
 //多次声明或者定义检查函数参数
-bool CheckParamInFunc(Item* funcitem, Type paramtype, int pnum){
+//并将名字改为最后一次
+bool CheckParamInFunc(Item* funcitem, char* paramname, Type paramtype, int pnum){
     #ifdef DEBUG
     LogPurple("In Check Param In Func with funcnum %d, paramtype %d, pnum %d"
         ,funcitem->func_num,paramtype->kind,pnum);
@@ -419,8 +487,10 @@ bool CheckParamInFunc(Item* funcitem, Type paramtype, int pnum){
     }
     if(plist == NULL)
         return false;
-    if(CheckTypes(plist->type,paramtype))
+    if(CheckTypes(plist->type,paramtype)){
+        plist->name = paramname;
         return true;
+    }
     return false;
 }
 
@@ -444,3 +514,63 @@ bool CheckArgInFunc(Item* funcitem, Type argtype, int pnum){
 }
 
 
+Type GetParamInFunction(char* paramname, Item* funcitem){
+    #ifdef DEBUG
+    LogPurple("In Get Param In Function with param %s, funcnum %d",paramname,funcitem->func_num);
+    #endif
+    Assert(funcitem != NULL,"Wrong in Get Param In Function");
+    FieldList plist = funcitem->funcinfo->params;
+    while(plist != NULL){
+        if(strcmp(plist->name,paramname) == 0)
+            return plist->type;
+        plist = plist->tail;
+    }
+    #ifdef DEBUG
+    LogPurple("Get param return NULL");
+    #endif
+    return NULL;
+}
+
+void DeleteItemInDeep(int deep){
+    #ifdef DEBUG
+    LogGreen("In Delete Item In Deep");
+    #endif
+    Assert(deep > 0, "Wrong in Delete");
+
+    struct SymStack* Chead = Stackhead;
+    while(Chead != NULL && Chead->deep > deep){
+        Chead = Chead->next;
+    }
+    if(Chead != NULL && Chead->deep == deep){
+        Item* ptr = Chead->Iptr;
+        while(ptr != NULL){
+            if(ptr->rowpref == NULL){
+                //第一个
+                if(ptr->rownext == NULL){
+                    //只有一个
+                    Hashtable[Hash_pjw(ptr->name)] = NULL;
+                }
+                else{
+                    ptr->rownext->rowpref = NULL;
+                    Hashtable[Hash_pjw(ptr->name)] = ptr->rownext;
+                    ptr->rownext = NULL;
+                }
+            }
+            else if(ptr->rownext == NULL){
+                //最后一个
+                ptr->rowpref->rownext = NULL;
+                ptr->rowpref = NULL;
+            }
+            else{
+                Item* pref = ptr->rowpref;
+                Item* next = ptr->rownext;
+                pref->rownext = next;
+                next->rowpref = pref;
+                ptr->rowpref = ptr->rownext = NULL;
+            }
+            ptr = ptr->colnext;
+        }
+        Chead->Iptr = NULL;
+    }
+
+}

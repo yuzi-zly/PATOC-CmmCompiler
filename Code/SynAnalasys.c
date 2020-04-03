@@ -8,8 +8,8 @@
 
 /*----------------------------functions declaration------------------------*/
 Type AnalasysForSpecifier(struct Node* ptr);
-Type AnalasysForExp(struct Node* ptr);
-bool AnalasysForCompSt(struct Node* ptr, Type _functype);
+Type AnalasysForExp(struct Node* ptr, Item* _funcitem);
+bool AnalasysForCompSt(struct Node* ptr, Item* _funcitem);
 
 /*----------------------------static variables------------------------*/
 static int basedeep = 0;//函数
@@ -20,8 +20,9 @@ static int funcnum = 0;//第几个函数
 static int paramsnum;//用于标定检查到第几个参数
 static char basic_int[5] = "int";
 static char basic_float[10] = "float";
-
 static bool calledfunc[HTSIZE];
+static bool need_add_func = true;
+
 extern Item* FuncList[HTSIZE];
 
 /*----------------------------functions definition------------------------*/
@@ -29,6 +30,7 @@ extern Item* FuncList[HTSIZE];
 // for VarDec
 //_structnode 用于添加结构体域名，默认为NULL
 //_funcitem 用于添加函数参数，默认为NULL
+//如果需要防止局部变量和参数名冲突，_infuncitem 表示在该函数中定义局部变量，默认为NULL
 bool AnalasysForVarDec(struct Node* ptr,Type this_type, struct DTNode* _structnode, Item* _funcitem){
     #ifdef DEBUG
         Log("In the VarDec with type %d",this_type->kind);
@@ -59,7 +61,7 @@ bool AnalasysForVarDec(struct Node* ptr,Type this_type, struct DTNode* _structno
                 return true;
             }
             else{
-                return CheckParamInFunc(_funcitem, this_type, paramsnum);
+                return CheckParamInFunc(_funcitem, child1->value.type_string, this_type, paramsnum);
             }
         }
         else{
@@ -75,6 +77,7 @@ bool AnalasysForVarDec(struct Node* ptr,Type this_type, struct DTNode* _structno
                 fprintf(stderr,"Error type 3 at Line %d:  Redefined variable \" %s \".\n",child1->row,child1->value.type_string);
                 return false;
             }
+            
         }
         return true;
     }
@@ -123,15 +126,19 @@ bool AnalasysForVarList(struct Node* ptr, Item* _funcitem){
     struct Node* paramdec = ptr->child;
     struct Node* comma = paramdec->brother;
     struct Node* varlist = NULL;
+    bool retflag = true;
     paramsnum++;
 
     if(!AnalasysForParamDec(paramdec, _funcitem))
-        return false;
+        retflag = false;
     if(comma != NULL){
         varlist = comma->brother;
-        return AnalasysForVarList(varlist, _funcitem);
+        if(retflag == true)
+            retflag = AnalasysForVarList(varlist, _funcitem);
+        else 
+            AnalasysForVarList(varlist, _funcitem);
     }
-    return true;
+    return retflag;
 }
 
 
@@ -144,6 +151,7 @@ Item* AnalasysForFunDec(struct Node* ptr, Type this_type, int mode){
 
     struct Node* id = ptr->child;
     struct Node* child3 = id->brother->brother;
+    bool first = false;
 
     Item *funcitem  = GetItemByName(id->value.type_string, basedeep);
     if(funcitem == NULL){
@@ -151,94 +159,211 @@ Item* AnalasysForFunDec(struct Node* ptr, Type this_type, int mode){
         #ifdef DEBUG
         LogPurple("Fisrt times");
         #endif
+        first = true;
         funcnum++;
         funcitem = CreateFunctionItem(funcnum, id->value.type_string, this_type, NONE, basedeep, id->row);
         Assert(funcitem!=NULL,"Wrong while create funcitem");
     }
     if(funcitem->symkind != FUNCTION) 
         Assert(0,"The name of Function cannot be the same as Variable.");
-   
-   //多次定义
-    if(funcitem->funcinfo->status == DEFINE && mode == DEFINE){
-        fprintf(stderr,"Error type 4 at Line %d: Redefined Function \" %s \".\n"
-            ,id->row,id->value.type_string);
-        return NULL;
-    }
 
-    //返回类型不一致
-    if(funcitem->type != this_type){
-        if(funcitem->funcinfo->status == DEFINE && mode == NONE){
-            fprintf(stderr,"Error type 4 at Line %d: Redefined Function \" %s \".\n"
-            ,id->row,id->value.type_string);
-            return NULL;
-        }
-        fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
-                ,id->row,id->value.type_string);
-        return NULL;
-    }
- 
-    if(strcmp(child3->name,"VarList") == 0){
-        #ifdef DEBUG
-        LogYellow("FunDec with VarList");
-        #endif
-
-        paramsnum = 0;//开始标记参数
-        if(AnalasysForVarList(child3, funcitem)){
-            funcitem->funcinfo->status = mode;
-            return funcitem;
-        }
-        else {
-            fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
-                ,id->row,id->value.type_string);
-            return NULL;
-        }
-            
-    }
-    else{
-        #ifdef DEBUG
-        LogYellow("FunDec with no VarList");
-        #endif
-        if(funcitem->paramnums != 0){
-            //参数数量不一致
-            if(funcitem->funcinfo->status == DEFINE && mode == NONE){
-                fprintf(stderr,"Error type 4 at Line %d: Redefined Function \" %s \".\n"
-                     ,id->row,id->value.type_string);
-                return NULL;
-            }
+    
+    if(mode == DECALARE){
+        //声明
+        //返回类型不一致
+        if(funcitem->type != this_type){
             fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
                     ,id->row,id->value.type_string);
             return NULL;
-        }    
-        funcitem->funcinfo->status = mode;
-        return funcitem;
+        }
+        if(strcmp(child3->name,"VarList") == 0){
+            #ifdef DEBUG
+            LogYellow("FunDec with VarList");
+            #endif
+            
+            paramsnum = 0;//开始标记参数
+            if(AnalasysForVarList(child3, funcitem)){
+                funcitem->funcinfo->status = mode;
+                return funcitem;
+            }
+            else {
+                if(first == false){
+                     fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+                    ,id->row,id->value.type_string);
+                    return NULL;
+                }
+                else
+                    return NULL;  
+            }
+        }
+        else{
+             #ifdef DEBUG
+            LogYellow("FunDec with no VarList");
+            #endif
+            if(funcitem->paramnums != 0){
+                //参数数量不一致
+                fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+                    ,id->row,id->value.type_string);
+                return NULL;
+            }    
+            funcitem->funcinfo->status = mode;
+            return funcitem;
+        }
     }
+    else if(mode == NONE){
+        //定义
+        Item* this_item = NULL;
+        if(first == false){
+            funcnum++;
+            this_item = CreateFunctionItem(funcnum, id->value.type_string, this_type, NONE, basedeep,id->row);
+            Assert(this_item!=NULL,"Wrong while create funcitem");
+        }
+            
+        //多次定义,一定不是第一次,以第一次为准
+        if(funcitem->funcinfo->status == DEFINE){
+            fprintf(stderr,"Error type 4 at Line %d: Redefined Function \" %s \".\n"
+                ,id->row,id->value.type_string);
+            need_add_func = false;
+            if(strcmp(child3->name,"VarList") == 0){
+                #ifdef DEBUG
+                LogYellow("FunDec with VarList");
+                #endif
+                paramsnum = 0;//开始标记参数
+                AnalasysForVarList(child3, this_item);
+            }
+            return this_item;
+        }
+
+         //返回类型不一致,一定不是第一次，以定义为准
+        if(funcitem->type != this_type){
+            fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+                    ,id->row,id->value.type_string);
+            need_add_func = false;
+            if(strcmp(child3->name,"VarList") == 0){
+                #ifdef DEBUG
+                LogYellow("FunDec with VarList");
+                #endif
+                paramsnum = 0;//开始标记参数
+                AnalasysForVarList(child3, this_item);
+            }
+            ExchangeFuncItem(funcitem,this_item);
+            return this_item;
+        }
+
+        //正常，此时funcitem->funcinfo->status == DECALARE
+        if(strcmp(child3->name,"VarList") == 0){
+            #ifdef DEBUG
+            LogYellow("FunDec with VarList");
+            #endif
+
+            paramsnum = 0;//开始标记参数
+            if(AnalasysForVarList(child3, funcitem)){
+                funcitem->funcinfo->status = mode;
+                return funcitem;
+            }
+            else {
+                //定义与声明参数不一致，以定义为准
+                if(first == false){
+                    fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+                        ,id->row,id->value.type_string);
+                    AnalasysForVarList(child3,this_item);
+                    ExchangeFuncItem(funcitem,this_item);
+                    need_add_func = false;//因为在exchange里面已经存了
+                    return this_item;
+                }
+                else
+                    return funcitem;  
+            }    
+        }
+        else{
+            #ifdef DEBUG
+            LogYellow("FunDec with no VarList");
+            #endif
+            if(funcitem->paramnums != 0){
+                //参数数量不一致
+                fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+                    ,id->row,id->value.type_string);
+                ExchangeFuncItem(funcitem,this_item);
+                need_add_func = false;
+                return this_item;
+            }    
+            funcitem->funcinfo->status = mode;
+            return funcitem;
+        }
+    }
+
+    
+   
+   
+
+    // //返回类型不一致
+    // if(funcitem->type != this_type){
+    //     fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+    //             ,id->row,id->value.type_string);
+    //     return NULL;
+    // }
+ 
+    // if(strcmp(child3->name,"VarList") == 0){
+    //     #ifdef DEBUG
+    //     LogYellow("FunDec with VarList");
+    //     #endif
+
+    //     paramsnum = 0;//开始标记参数
+    //     if(AnalasysForVarList(child3, funcitem)){
+    //         funcitem->funcinfo->status = mode;
+    //         return funcitem;
+    //     }
+    //     else {
+    //         if(first == false){
+    //              fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+    //             ,id->row,id->value.type_string);
+    //             return NULL;
+    //         }
+    //         else
+    //             return NULL;  
+    //     }
+            
+    // }
+    // else{
+    //     #ifdef DEBUG
+    //     LogYellow("FunDec with no VarList");
+    //     #endif
+    //     if(funcitem->paramnums != 0){
+    //         //参数数量不一致
+    //         fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
+    //                 ,id->row,id->value.type_string);
+    //         return NULL;
+    //     }    
+    //     funcitem->funcinfo->status = mode;
+    //     return funcitem;
+    // }
 }
 
 // for Args
-bool AnalasysForArgs(struct Node* ptr, Item* _funcitem){
+bool AnalasysForArgs(struct Node* ptr,Item* _calleditem, Item* _funcitem){
     #ifdef DEBUG
-    Log("In Args with function %d",_funcitem->func_num);
+    Log("In Args with called function %d and in function %d",_calleditem->func_num,_funcitem->func_num);
     #endif
     Assert(strcmp(ptr->name,"Args") == 0, "Wrong in Args");
 
     struct Node* exp = ptr->child;
     struct Node* comma = exp->brother;
 
-    Type curtype = AnalasysForExp(exp);
+    Type curtype = AnalasysForExp(exp, _funcitem);
     if(curtype == NULL)
         return false;
     paramsnum++;
-    if(CheckArgInFunc(_funcitem, curtype, paramsnum) == false)
+    if(CheckArgInFunc(_calleditem, curtype, paramsnum) == false)
         return false;
     //参数过少,过多已经包含在Check调用中
     if(comma == NULL){
-        if(paramsnum < _funcitem->paramnums)
+        if(paramsnum < _calleditem->paramnums)
             return false;
         else
             return true;
     }
 
-    return AnalasysForArgs(comma->brother, _funcitem); 
+    return AnalasysForArgs(comma->brother,_calleditem, _funcitem); 
 }
 
 //NOT 在Exp中已经处理
@@ -267,7 +392,8 @@ bool IS_ARITHMETICOP(struct Node* ptr){
 }
 
 // for Exp
-Type AnalasysForExp(struct Node* ptr){
+// _funcitem 用于读取函数参数
+Type AnalasysForExp(struct Node* ptr, Item* _funcitem){
     #ifdef DEBUG
     Log("In the Exp");
     #endif
@@ -285,11 +411,11 @@ Type AnalasysForExp(struct Node* ptr){
     }
     else if(strcmp(child1->name,"LP") == 0 || strcmp(child1->name,"MINUS") == 0){
         // LP Exp RP || MINUS Exp
-        return AnalasysForExp(child1->brother);
+        return AnalasysForExp(child1->brother,_funcitem);
     }
     else if(strcmp(child1->name,"NOT") == 0){
         //NOT Exp,逻辑运算
-        Type rettype = AnalasysForExp(child1->brother);
+        Type rettype = AnalasysForExp(child1->brother,_funcitem);
         if(rettype == NULL)
             return NULL;
         if(rettype->kind == BASIC && rettype->u.basic == 0)
@@ -299,20 +425,39 @@ Type AnalasysForExp(struct Node* ptr){
     }
     else if(strcmp(child1->name,"ID") == 0){
         //ID || ID LP Args RP || ID LP RP
+        #ifdef DEBUG
+        LogYellow("ID name %s.",child1->value.type_string);
+        #endif
         child2 = child1->brother;
         Item* tmpitem = NULL;
-        for(int tmpdeep = basedeep; tmpdeep >= 0; --tmpdeep){
+        Type paramtype = NULL;
+        //内部变量
+        for(int tmpdeep = basedeep; tmpdeep > 0; --tmpdeep){
             tmpitem = GetItemByName(child1->value.type_string,tmpdeep);
             if(tmpitem != NULL)
                 break;
         }
+        if(tmpitem == NULL && _funcitem != NULL){
+            if(strcmp(child1->value.type_string,_funcitem->name) == 0)
+                tmpitem = _funcitem;
+        }
+        //函数参数
+        if(tmpitem == NULL){
+            paramtype = GetParamInFunction(child1->value.type_string, _funcitem);
+        }
+        if(tmpitem == NULL && paramtype == NULL)
+            tmpitem = GetItemByName(child1->value.type_string, 0);
+
         if(child2 == NULL){
             //ID,变量
-            if(tmpitem == NULL || tmpitem->symkind != VARIABLE){
+            if((tmpitem == NULL || tmpitem->symkind != VARIABLE) && paramtype == NULL){
                 fprintf(stderr,"Error type 1 at Line %d: Undefined variable \" %s \".\n",child1->row,child1->value.type_string);
                 return NULL;
             }
-            return tmpitem->type;
+            if(tmpitem != NULL)
+                return tmpitem->type;
+            else
+                return paramtype;
         }
         else{
             //ID LP RP || ID LP Args RP
@@ -345,19 +490,19 @@ Type AnalasysForExp(struct Node* ptr){
             }
                 
             //数目均不为0
-            if(AnalasysForArgs(child3,tmpitem) == false){
+            if(AnalasysForArgs(child3,tmpitem,_funcitem) == false){
                 fprintf(stderr,"Error type 9 at Line %d: The number or type of the arguments is wrong in called function \" %s \".\n",child3->row,child1->value.type_string);
                 return NULL;
             }
             if(tmpitem->funcinfo->status == DECALARE)
-                calledfunc[tmpitem->func_num] =true;
+                calledfunc[tmpitem->func_num] = true;
             return tmpitem->type;
         }
     }
     else if(strcmp(child1->name,"Exp") == 0){
         child2 = child1->brother;
         child3 = child2->brother;
-        Type type1 = AnalasysForExp(child1);
+        Type type1 = AnalasysForExp(child1,_funcitem);
         if(type1 == NULL)
             return NULL;
         if(strcmp(child2->name,"ASSIGNOP") == 0){
@@ -365,7 +510,12 @@ Type AnalasysForExp(struct Node* ptr){
                 fprintf(stderr,"Error type 6 at Line %d: The left of ASIIGNOP is Rvalue.\n",child1->row);
                 return NULL;
             }
-            Type type2 = AnalasysForExp(child3);
+            //函数
+            if(strcmp(child1->child->name,"ID") == 0 && (child1->child->brother != NULL && strcmp(child1->child->brother->name,"LP") == 0)){
+                fprintf(stderr,"Error type 6 at Line %d: The left of ASIIGNOP is Rvalue.\n",child1->row);
+                return NULL;
+            }
+            Type type2 = AnalasysForExp(child3,_funcitem);
             if(type2 == NULL)
                 return NULL;
             if(CheckTypes(type1,type2) == false){
@@ -379,7 +529,7 @@ Type AnalasysForExp(struct Node* ptr){
                 fprintf(stderr,"Error type 7 at Line %d: Operand types do not match or operand types do not match operators.\n",child1->row);
                 return NULL;
             }
-            Type type2 = AnalasysForExp(child3);
+            Type type2 = AnalasysForExp(child3,_funcitem);
             if(type2 == NULL)
                 return NULL;
             if((type2->kind != BASIC) || (type2->kind == BASIC && type2->u.basic != 0)){
@@ -393,7 +543,7 @@ Type AnalasysForExp(struct Node* ptr){
                 fprintf(stderr,"Error type 7 at Line %d: Operand types do not match or operand types do not match operators.\n",child1->row);
                 return NULL;
             }
-            Type type2 = AnalasysForExp(child3);
+            Type type2 = AnalasysForExp(child3,_funcitem);
             if(type2 == NULL)
                 return NULL;
             if(CheckTypes(type1,type2) == false){
@@ -407,7 +557,7 @@ Type AnalasysForExp(struct Node* ptr){
                 fprintf(stderr,"Error type 10 at Line %d: Cannot use \' [] \' operator when the variable is not an array.\n",child2->row);
                 return NULL;
             }
-            Type type2 = AnalasysForExp(child3);
+            Type type2 = AnalasysForExp(child3,_funcitem);
             if(type2 == NULL) 
                 return NULL;
             if(type2->kind != BASIC || (type2->kind == BASIC && type2->u.basic != 0)){
@@ -437,7 +587,7 @@ Type AnalasysForExp(struct Node* ptr){
 }
 
 // for Dec
-bool AnalasysForDec(struct Node* ptr, Type this_type, struct DTNode* _structnode){
+bool AnalasysForDec(struct Node* ptr, Type this_type, struct DTNode* _structnode, Item* _infuncitem){
     #ifdef DEBUG
     if(_structnode != NULL)
         Log("In the Dec with type %d, structnum %d",this_type->kind,_structnode->struct_num);
@@ -462,11 +612,15 @@ bool AnalasysForDec(struct Node* ptr, Type this_type, struct DTNode* _structnode
     }
     else{
         //CompSt内定义
-        Type exptype = AnalasysForExp(exp);
+        Type exptype = AnalasysForExp(exp, _infuncitem);
         if(exptype == NULL)
             return false;
         else{
-            if(CheckTypes(this_type,exptype))
+            while(strcmp(vardec->child->name,"ID") != 0){
+                vardec = vardec->child;
+            }
+            Item* vardecitem = GetItemByName(vardec->child->value.type_string,basedeep);
+            if(CheckTypes(vardecitem->type,exptype))
                 return true;
             fprintf(stderr,"Error type 5 at Line %d: The type of the Exp on both sides of the ASSIGNOP does not match.\n",assign->row);
             return false;
@@ -476,7 +630,7 @@ bool AnalasysForDec(struct Node* ptr, Type this_type, struct DTNode* _structnode
 
 
 // for DecList
-bool AnalasysForDecList(struct Node* ptr, Type this_type, struct DTNode* _structnode){
+bool AnalasysForDecList(struct Node* ptr, Type this_type, struct DTNode* _structnode, Item* _infuncitem){
     #ifdef DEBUG
     if(_structnode != NULL)
         Log("In the DecList with type %d, structnum %d",this_type->kind,_structnode->struct_num);
@@ -486,12 +640,17 @@ bool AnalasysForDecList(struct Node* ptr, Type this_type, struct DTNode* _struct
 
     Assert(strcmp(ptr->name,"DecList") == 0,"wrong at AnalasysForDecList");
     struct Node* dec = ptr->child;
-    
-    if(AnalasysForDec(dec,this_type,_structnode) == false)
-        return false;
-    if(dec->brother != NULL)
-       return AnalasysForDecList(dec->brother->brother,this_type,_structnode);
-    return true;
+    bool retflag = true;
+
+    if(AnalasysForDec(dec,this_type,_structnode,_infuncitem) == false)
+        retflag = false;
+    if(dec->brother != NULL){
+        if(retflag == true)
+            retflag = AnalasysForDecList(dec->brother->brother,this_type,_structnode,_infuncitem);
+        else
+            AnalasysForDecList(dec->brother->brother,this_type,_structnode,_infuncitem);
+    }
+    return retflag;
 }
 
 // for Def
@@ -499,7 +658,7 @@ bool AnalasysForDecList(struct Node* ptr, Type this_type, struct DTNode* _struct
 * 如果要考虑结构体嵌套定义下的域名和结构体名冲突，
 * 需要在其中调用AnalasysForSpecifier中加入参数_structnode
 */
-bool AnalasysForDef(struct Node* ptr, struct DTNode* _structnode){
+bool AnalasysForDef(struct Node* ptr, struct DTNode* _structnode, Item* _infuncitem){
     #ifdef DEBUG
     if(_structnode != NULL)
         Log("In the Def with structnum %d",_structnode->struct_num);
@@ -523,11 +682,11 @@ bool AnalasysForDef(struct Node* ptr, struct DTNode* _structnode){
         return false;
     }
         
-    return AnalasysForDecList(declist,curtype, _structnode);
+    return AnalasysForDecList(declist,curtype, _structnode, _infuncitem);
 }
 
 // for DefList
-bool AnalasysForDefList(struct Node* ptr, struct DTNode* _structnode){
+bool AnalasysForDefList(struct Node* ptr, struct DTNode* _structnode, Item* _infuncitem){
     #ifdef DEBUG
     if(_structnode != NULL)
         Log("In the DefList with structnum %d",_structnode->struct_num);
@@ -540,13 +699,18 @@ bool AnalasysForDefList(struct Node* ptr, struct DTNode* _structnode){
     Assert(strcmp(ptr->name,"DefList") == 0,"wrong at AnalasysForDefList");
     struct Node* def = ptr->child;
     struct Node* deflist = def->brother;
+    bool retflag = true;
 
-    if(AnalasysForDef(def, _structnode) == false)
-        return false;
+    if(AnalasysForDef(def, _structnode, _infuncitem) == false)
+        retflag = false;
     #ifdef DEBUG
         Log("After Def");
     #endif
-    return AnalasysForDefList(deflist, _structnode);
+    if(retflag == true)
+        retflag = AnalasysForDefList(deflist, _structnode, _infuncitem);
+    else   
+        AnalasysForDefList(deflist, _structnode, _infuncitem);
+    return retflag;
 }
 
 
@@ -574,7 +738,10 @@ Type AnalasysForStruct(struct Node* ptr){
         * 定义该结构体类型的变量
         */
         ret = GetTypeByName(child2->child->value.type_string);
-        return ret;
+        if(ret == NULL || ret->struct_status == DEFINED)
+            return ret;
+        else
+            return NULL;
     }
     else{
         /*
@@ -589,26 +756,28 @@ Type AnalasysForStruct(struct Node* ptr){
             structdeep++;
             structnum++;
             structnode = CreateDTNodeForStruct(defualt_name, structnum);
-            if(AnalasysForDefList(child3, structnode)){
-                AddDTNodeForStruct(structnode);
-                structdeep--;
-                return &(structnode->type_);
+            structnode->type_.struct_status = BUILDING;
+            if(strcmp(child3->name,"DefList") == 0){
+                AnalasysForDefList(child3, structnode, NULL);
             }
+            structnode->type_.struct_status = DEFINED;      
+            AddDTNodeForStruct(structnode);
             structdeep--;
-            return NULL;
+            return &(structnode->type_);
         }
         else{
             struct Node* id = child2->child;
+            bool retflag = true;
             //检查是否重名结构体
             if(GetTypeByName(id->value.type_string) != NULL){
                 fprintf(stderr,"Error type 16 at Line %d: Redefined struct \" %s \".\n",id->row,id->value.type_string);
-                return NULL;
+                retflag = false;
             }
             //检查是否和Item的名字相同，注意此时要考虑的Item的deep <= basedeep.
             for(int tmpdeep = basedeep; tmpdeep >= 0; --tmpdeep){
                     if(GetItemByName(id->value.type_string, tmpdeep) != NULL){
                         fprintf(stderr,"Error type 16 at Line %d: Redefined \" %s \".\n",id->row,id->value.type_string);
-                        return NULL;
+                        retflag = false;
                 }
             }
             
@@ -617,11 +786,18 @@ Type AnalasysForStruct(struct Node* ptr){
             structdeep++;
             structnum++;
             structnode = CreateDTNodeForStruct(id->value.type_string, structnum);
-            if(AnalasysForDefList(child3->brother, structnode)){
+            structnode->type_.struct_status = BUILDING;
+            if(retflag == true){
                 AddDTNodeForStruct(structnode);
+            }      
+            if(strcmp(child3->brother->name,"DefList") == 0){
+                AnalasysForDefList(child3->brother, structnode, NULL);
+            }          
+            structnode->type_.struct_status = DEFINED;
+            if(retflag == true){        
                 structdeep--;
                 return &(structnode->type_);
-            }
+            } 
             structdeep--;
             return NULL;
         }
@@ -657,7 +833,7 @@ Type AnalasysForSpecifier(struct Node* ptr){
 }
 
 // for Stmt
-bool AnalasysForStmt(struct Node* ptr, Type _functype){
+bool AnalasysForStmt(struct Node* ptr, Item* _funcitem){
     #ifdef DEBUG
     Log("In Stmt");
     #endif
@@ -665,15 +841,16 @@ bool AnalasysForStmt(struct Node* ptr, Type _functype){
 
     struct Node* child1 = ptr->child;
     if(strcmp(child1->name,"Exp") == 0){
-        if(AnalasysForExp(child1) == NULL)
+        if(AnalasysForExp(child1, _funcitem) == NULL){
             return false;
+        }        
     }
     else if(strcmp(child1->name,"CompSt") == 0)
-        return AnalasysForCompSt(child1, _functype);
+        return AnalasysForCompSt(child1, _funcitem);
     else if(strcmp(child1->name,"RETURN") == 0){
         struct Node* exp = child1->brother;
-        Type rettype = AnalasysForExp(exp);
-        if(rettype == NULL || CheckTypes(_functype,rettype) == false){
+        Type rettype = AnalasysForExp(exp, _funcitem);
+        if(rettype == NULL || (_funcitem != NULL && CheckTypes(_funcitem->type,rettype) == false)){
             fprintf(stderr,"Error type 8 at Line %d: The type of RETURN mismacthed the type of the function.\n",exp->row);
             return false;
         }
@@ -682,37 +859,59 @@ bool AnalasysForStmt(struct Node* ptr, Type _functype){
     else if(strcmp(child1->name,"IF") == 0){
         struct Node* exp = child1->brother->brother;
         struct Node* stmt1 = exp->brother->brother;
-        Type exptype = AnalasysForExp(exp);
+        Type exptype = AnalasysForExp(exp,_funcitem);
+        bool retflag = true;
         if(exptype == NULL || exptype->kind != BASIC || (exptype->kind == BASIC && exptype->u.basic != 0)){
-            return false;
+            retflag = false;
         }
         if(stmt1->brother == NULL){
             //没有ELSE
-            return AnalasysForStmt(stmt1, _functype);
+            if(retflag == true)
+                return AnalasysForStmt(stmt1, _funcitem);
+            else
+            {
+                AnalasysForStmt(stmt1, _funcitem);
+                return false;
+            }         
         }
         else{
             //有ELSE
             struct Node* stmt2 = stmt1->brother->brother;
-            if(AnalasysForStmt(stmt1, _functype) == false)
+            if(AnalasysForStmt(stmt1, _funcitem) == false)
+                retflag = false;
+            if(retflag == true)
+                return AnalasysForStmt(stmt2, _funcitem);
+            else
+            {
+                AnalasysForStmt(stmt2, _funcitem);
                 return false;
-            return AnalasysForStmt(stmt2, _functype);
+            }            
         }
     }
     else if(strcmp(child1->name,"WHILE") == 0){
         struct Node* exp = child1->brother->brother;
         struct Node* stmt = exp->brother->brother;
-        Type exptype = AnalasysForExp(exp);
+        bool retflag = true;
+        Type exptype = AnalasysForExp(exp,_funcitem);
         if(exptype == NULL || exptype->kind != BASIC || (exptype->kind == BASIC && exptype->u.basic != 0)){
+            retflag = false;
+        }
+        if(retflag == true)
+            return AnalasysForStmt(stmt,_funcitem);
+        else
+        {
+            AnalasysForStmt(stmt,_funcitem);
             return false;
         }
-        return AnalasysForStmt(stmt,_functype);
+        
     }
     else
         Assert(0,"Not such a production");
+    return true;
 }
 
 // for StmtList
-bool AnalasysForStmtList(struct Node* ptr, Type _functype){
+bool AnalasysForStmtList(struct Node* ptr, Item* _funcitem){
     #ifdef DEBUG
     Log("In StmtList");
     #endif
@@ -722,45 +921,54 @@ bool AnalasysForStmtList(struct Node* ptr, Type _functype){
 
     struct Node* stmt = ptr->child;
     struct Node* stmtlist = stmt->brother;
+    bool retflag = true;
     
-    if(AnalasysForStmt(stmt, _functype) == false)
-        return false;
-    return AnalasysForStmtList(stmtlist, _functype);
+    if(AnalasysForStmt(stmt, _funcitem) == false){
+        retflag = false;
+    }
+    if(retflag == true)
+        retflag = AnalasysForStmtList(stmtlist, _funcitem);
+    else
+        AnalasysForStmtList(stmtlist, _funcitem);
+    return retflag;
 }
 
 
 // for CompSt
-bool AnalasysForCompSt(struct Node* ptr, Type _functype){
+bool AnalasysForCompSt(struct Node* ptr, Item* _funcitem){
     #ifdef DEBUG
-    Log("In CompSt");
+    LogRed("In CompSt");
     #endif
     Assert(strcmp(ptr->name,"CompSt") == 0, "Wrong In CompSt");
     basedeep++;
+    structdeep = basedeep;
 
     struct Node* child2 = ptr->child->brother;
     struct Node* child3 = NULL;
+    bool retflag = true;
     if(strcmp(child2->name,"DefList") == 0){
-        if(AnalasysForDefList(child2, NULL) == false){
-            basedeep--;
-            return false;
+        if(AnalasysForDefList(child2, NULL, _funcitem) == false){
+            retflag = false;
         }
         child3 = child2->brother;
         if(strcmp(child3->name,"StmtList") == 0){
-            if(AnalasysForStmtList(child3, _functype) == false){
-                basedeep--;
-                return false;
+            if(AnalasysForStmtList(child3, _funcitem) == false){
+                retflag = false;
             }      
         }
     }  
     else if(strcmp(child2->name,"StmtList") == 0){
-        if(AnalasysForStmtList(child2, _functype) == false){
-            basedeep--;
-            return false;
+        if(AnalasysForStmtList(child2, _funcitem) == false){
+            retflag = false;
         }     
     }
-
+    DeleteItemInDeep(basedeep);
     basedeep--;
-    return true; 
+    structdeep = basedeep;
+    #ifdef DEBUG
+    LogRed("CompSt return %d",retflag);
+    #endif
+    return retflag; 
 }
 
 // for ExtDecList
@@ -809,24 +1017,22 @@ void AnalasysForExtDef(struct Node* ptr){
         AnalasysForExtDecList(child2, curtype);
     //Specifier FunDec CompSt || Specifier FunDec SEMI
     else if(strcmp(child2->name, "FunDec") == 0){
+        need_add_func = true;
         if(strcmp(child3->name, "SEMI") == 0){
             //Specifier FunDec SEMI
             Item* funcitem = AnalasysForFunDec(child2, curtype, DECALARE);
             if(funcitem != NULL)
             {
                 AddFuncItemInTable(funcitem, basedeep);
-            }
-                
+            }         
         }
         else{
             //Specifier FunDec CompSt
             Item* funcitem = AnalasysForFunDec(child2, curtype, NONE);
-            if(funcitem != NULL){
-                if(AnalasysForCompSt(child3, curtype)){
-                    funcitem->funcinfo->status = DEFINE;
-                    AddFuncItemInTable(funcitem, basedeep);
-                }
-            }
+            AnalasysForCompSt(child3, funcitem);
+            funcitem->funcinfo->status = DEFINE;
+            if(need_add_func == true)
+                AddFuncItemInTable(funcitem, basedeep);
         }
     }
      
@@ -869,6 +1075,11 @@ void AnalasysForProgram(struct Node* ptr){
         Item* funcitem = FuncList[i];
         if(funcitem != NULL && funcitem->funcinfo->status != DEFINE){
             fprintf(stderr,"Error type 18 at Line %d: Function \" %s \" is decalared but not be defined.\n",funcitem->rownum,funcitem->name);
+            if(calledfunc[i] == true){
+                fprintf(stderr,"Error type 2 at Line %d: Function \" %s \" is called but not be defined.\n",funcitem->rownum,funcitem->name);
+            }
+        }
+        else if(funcitem == NULL){
             if(calledfunc[i] == true){
                 fprintf(stderr,"Error type 2 at Line %d: Function \" %s \" is called but not be defined.\n",funcitem->rownum,funcitem->name);
             }

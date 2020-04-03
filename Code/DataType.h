@@ -5,6 +5,7 @@ typedef struct FieldList_ * FieldList;
 struct Type_
 {
     enum {BASIC, ARRAY, STRUCTURE} kind;
+    enum {DEFINED, BUILDING} struct_status;
     union{
         int basic;//0 for int, 1 for float
         struct {Type elem; int size;} array;

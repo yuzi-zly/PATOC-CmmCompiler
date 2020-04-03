@@ -5,7 +5,7 @@
 
 #define HTSIZE 0x3ff
 
-// #define DEBUG
+//#define DEBUG
 
 struct FuncInfo
 {
@@ -23,18 +23,15 @@ struct SymItem
     //int struct_num;//表示域名在哪一个结构体内
     char* name;
     Type type;
-    //int dimension; //for array
     int paramnums; //for function
-    //int fieldnums; //for struct
-    //union Val value;
     int rownum;
     int deep;
+    Item* rowpref;
     Item* rownext;
     Item* colnext;
 };
 /*---------------------- Others ----------------------------*/
 char *GetAStructName();
-
 
 
 /*----------------------- DTtable ---------------------------*/
@@ -53,6 +50,9 @@ Item* GetItemByName(char* name,int curdeep);
 bool CreateAndAddVarInTable(char* name, Type this_type, int deep, int row);
 Item* CreateFunctionItem(int funcnum, char* funcname, Type functype, int mode, int deep, int rownum);
 void AddFuncItemInTable(Item* funcitem,int deep);
+void ExchangeFuncItem(Item* olditem, Item* newitem);
 void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype);
-bool CheckParamInFunc(Item* funcitem, Type paramtype, int pnum);
+bool CheckParamInFunc(Item* funcitem, char* paramname, Type paramtype, int pnum);
 bool CheckArgInFunc(Item* funcitem, Type argtype, int pnum);
+Type GetParamInFunction(char* paramname, Item* funcitem);
+void DeleteItemInDeep(int deep);
