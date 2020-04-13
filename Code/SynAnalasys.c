@@ -183,7 +183,8 @@ Item* AnalasysForFunDec(struct Node* ptr, Type this_type, int mode){
             
             paramsnum = 0;//开始标记参数
             if(AnalasysForVarList(child3, funcitem)){
-                funcitem->funcinfo->status = mode;
+                if(funcitem->funcinfo->status != DEFINE) 
+			funcitem->funcinfo->status = mode;
                 return funcitem;
             }
             else {
@@ -205,8 +206,9 @@ Item* AnalasysForFunDec(struct Node* ptr, Type this_type, int mode){
                 fprintf(stderr,"Error type 19 at Line %d: Conflict between declarations and definitions with Function \" %s \".\n"
                     ,id->row,id->value.type_string);
                 return NULL;
-            }    
-            funcitem->funcinfo->status = mode;
+            }
+	    if(funcitem->funcinfo->status != DEFINE)    
+            	funcitem->funcinfo->status = mode;
             return funcitem;
         }
     }
