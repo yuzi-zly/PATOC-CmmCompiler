@@ -488,7 +488,10 @@ bool CheckParamInFunc(Item* funcitem, char* paramname, Type paramtype, int pnum,
     #endif
 
     FieldList plist = funcitem->funcinfo->params;
-    Assert(plist != NULL, "The plist is NULL");
+    if(plist == NULL){
+    	return false;	 	
+    }
+    
     for(int i = 1; i < pnum; i++){
         if(strcmp(paramname,plist->name) == 0){
             fprintf(stderr,"Error type 3 at Line %d: Redefined variable \" %s \".\n",paramrow,paramname);
