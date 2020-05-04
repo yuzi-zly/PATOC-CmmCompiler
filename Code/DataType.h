@@ -17,6 +17,7 @@ struct Type_
 struct FieldList_
 {
     char *name;
+    int var_no;
     Type type;
     FieldList tail;
 };

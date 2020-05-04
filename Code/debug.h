@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+// #define L3DEBUG
+
 #define Assert(cond, ...)\
   do { \
     if (!(cond)) { \

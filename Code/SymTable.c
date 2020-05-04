@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "SymTable.h"
 #include "debug.h"
+#include "InterCode.h"
 
 /* Item */
 Item* Hashtable[HTSIZE];
@@ -229,7 +230,7 @@ bool CheckTypes(Type type1, Type type2){
 }
 
 //用于得到结构体域的类型
-Type FindFieldInStruct(Type this_type, char* fieldname){
+Type FindFieldInStruct(Type this_type, char* fieldname, int* size){
     #ifdef DEBUG
     Log("In Find Field In Struct with fieldname %s.",fieldname);
     #endif
@@ -237,6 +238,7 @@ Type FindFieldInStruct(Type this_type, char* fieldname){
     while(plist != NULL){
         if(strcmp(plist->name,fieldname) == 0)
             return plist->type;
+        *size += CalculateSize(plist->type);
         plist = plist->tail;
     }
     return NULL;
@@ -527,7 +529,7 @@ bool CheckArgInFunc(Item* funcitem, Type argtype, int pnum){
 }
 
 
-Type GetParamInFunction(char* paramname, Item* funcitem){
+FieldList GetParamInFunction(char* paramname, Item* funcitem){
     #ifdef DEBUG
     LogPurple("In Get Param In Function with param %s, funcnum %d",paramname,funcitem->func_num);
     #endif
@@ -535,7 +537,7 @@ Type GetParamInFunction(char* paramname, Item* funcitem){
     FieldList plist = funcitem->funcinfo->params;
     while(plist != NULL){
         if(strcmp(plist->name,paramname) == 0)
-            return plist->type;
+            return plist;
         plist = plist->tail;
     }
     #ifdef DEBUG

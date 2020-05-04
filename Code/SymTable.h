@@ -21,6 +21,7 @@ struct SymItem
     struct FuncInfo* funcinfo;
     int func_num;//表示哪一个函数
     //int struct_num;//表示域名在哪一个结构体内
+    int var_no;
     char* name;
     Type type;
     int paramnums; //for function
@@ -43,7 +44,7 @@ void AddDTNodeForStruct(struct DTNode* structnode);
 bool AddFieldInStruct(struct DTNode* structnode, char* fieldname, Type fieldtype);
 Type CreateArrayType(Type basetype, unsigned int size);
 bool CheckTypes(Type type1, Type type2);
-Type FindFieldInStruct(Type this_type, char* fieldname);
+Type FindFieldInStruct(Type this_type, char* fieldname, int* size);
 
 /*----------------------- Symtable ---------------------------*/
 Item* GetItemByName(char* name,int curdeep);
@@ -54,5 +55,7 @@ void ExchangeFuncItem(Item* olditem, Item* newitem);
 void AddParamInFunc(Item* funcitem, char* paramname, Type paramtype, int paramrow);
 bool CheckParamInFunc(Item* funcitem, char* paramname, Type paramtype, int pnum, int paramrow);
 bool CheckArgInFunc(Item* funcitem, Type argtype, int pnum);
-Type GetParamInFunction(char* paramname, Item* funcitem);
+FieldList GetParamInFunction(char* paramname, Item* funcitem);
 void DeleteItemInDeep(int deep);
+
+void PrintInterCodes(char* filename);
