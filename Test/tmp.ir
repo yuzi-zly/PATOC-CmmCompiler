@@ -1,0 +1,17 @@
+FUNCTION main :
+t2 := #5
+WRITE t2
+t1 := #0
+IF t1 != #0 GOTO label1
+GOTO label2
+LABEL label1 :
+t3 := #114
+WRITE t3
+GOTO label3
+LABEL label2 :
+t4 := #996
+WRITE t4
+LABEL label3 :
+t5 := #0
+RETURN t5
+

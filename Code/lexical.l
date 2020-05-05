@@ -6,6 +6,7 @@
     #include <stdlib.h>
     #include "syntax.tab.h"
     #include "SynTree.h"
+    #include "debug.h"
 
     
     int print_flag = 1;// 1-ok ,0-error

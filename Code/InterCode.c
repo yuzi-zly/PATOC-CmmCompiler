@@ -461,7 +461,7 @@ static char* getleftcode(Operand left){
     }
     else{
         LogRed("%d",left->kind);
-        Assert(0,"wrong in print assign");
+        Assert(0,"wrong in leftcode");
     }
         
 
@@ -503,6 +503,7 @@ static char* getrightcode(Operand right){
 
     return ret;
 }
+
 
 static char* PrintEachInterCode(struct InterCode* code){
     #ifdef L3DEBUG
@@ -609,6 +610,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         char* leftcode = getleftcode(left);
         char* rightcode = getrightcode(right);
 
+
         sprintf(outstr,"%s %s %s",leftcode,code->u.ic_relop.relop,rightcode);
         break;
     }
@@ -661,7 +663,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         Operand left = code->u.ic_call.left;
         char* leftcode = getleftcode(left);
         sprintf(outstr,"%s := CALL %s\n",
-            leftcode,code->u.ic_call.function->u.funcname);
+            leftcode,code->u.ic_call.function->u.funcname);   
         break;
     }
     case IC_PARAM:{

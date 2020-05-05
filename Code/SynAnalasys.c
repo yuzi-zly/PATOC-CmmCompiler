@@ -357,7 +357,7 @@ Item* AnalasysForFunDec(struct Node* ptr, Type this_type, int mode){
 }
 
 // for Args
-bool AnalasysForArgs(struct Node* ptr,Item* _calleditem, Item* _funcitem, Operand* arglist, int index){
+bool AnalasysForArgs(struct Node* ptr,Item* _calleditem, Item* _funcitem, Operand* arglist, int index, int paranum){
     #ifdef DEBUG
     Log("In Args with called function %d and in function %d",_calleditem->func_num,_funcitem->func_num);
     #endif
@@ -375,18 +375,22 @@ bool AnalasysForArgs(struct Node* ptr,Item* _calleditem, Item* _funcitem, Operan
 
     if(curtype == NULL)
         return false;
-    paramsnum++;
-    if(CheckArgInFunc(_calleditem, curtype, paramsnum) == false)
+    paranum++;
+    //LogRed("check at paramnum %d in  func %s",paranum,_calleditem->name);
+    if(CheckArgInFunc(_calleditem, curtype, paranum) == false){
+        //LogGreen("Wrong check type %d, num %d ",curtype->kind,paranum);
         return false;
+    }
+        
     //参数过少,过多已经包含在Check调用中
     if(comma == NULL){
-        if(paramsnum < _calleditem->paramnums)
+        if(paranum < _calleditem->paramnums)
             return false;
         else
             return true;
     }
 
-    return AnalasysForArgs(comma->brother,_calleditem, _funcitem, arglist, index); 
+    return AnalasysForArgs(comma->brother,_calleditem, _funcitem, arglist, index,paranum); 
 }
 
 //NOT 在Exp中已经处理
@@ -442,8 +446,7 @@ Type Translate_Cond(struct Node* ptr, Item* _funcitem, int label_True, int Label
                 tvar2->u.tvar_no = tvar_num++;
                 AnalasysForExp(child1,_funcitem,tvar1);
                 AnalasysForExp(child3,_funcitem,tvar2);
-                char* op = child2->value.type_string;
-                struct InterCode* relopic = CreateRelopIC(tvar1,tvar2,op);
+                struct InterCode* relopic = CreateRelopIC(tvar1,tvar2,child2->value.type_string);
                 CreateAndAddIfIC(relopic,label_True);
                 CreateAndAddGotoIC(Label_False);
 
@@ -519,38 +522,51 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
             ret = AnalasysForExp(child1->brother,_funcitem, place);
         }
         else{
-            if(place == NULL)
-                return ret;
-            place->kind = Ope_TVAR;
+            Operand tmp = CreateOperand(Ope_TVAR);
+            
             int newplace_num = tvar_num++;
             Operand newplace = CreateOperand(Ope_NONE);
             newplace->u.tvar_no = newplace_num;
             ret = AnalasysForExp(child1->brother,_funcitem,newplace);
             Operand right1 = CreateOperand(Ope_INT);
             right1->u.const_int = 0;
-            CreateAndAddSubIC(place,right1,newplace);
+
+            CreateAndAddSubIC(tmp,right1,newplace);
+            if(place == NULL)
+                tmp->u.tvar_no = tvar_num++;
+            else{
+                place->kind = Ope_TVAR;
+                tmp->u.tvar_no = place->u.tvar_no;
+            }
+            
         }
         return ret;
     }
     else if(strcmp(child1->name,"NOT") == 0){
         //NOT Exp,逻辑运算
-        if(place == NULL)
-            return NULL;
+        Operand tmp = CreateOperand(Ope_TVAR);
+
         int label1 = lab_num++;
         int label2 = lab_num++;
-        place->kind = Ope_TVAR;
-
+        
         Operand right1 = CreateOperand(Ope_INT);
         right1->u.const_int = 0;
-        CreateAndAddAssignIC(place,right1);
+        CreateAndAddAssignIC(tmp,right1);
 
         Type rettype = Translate_Cond(ptr,_funcitem,label1,label2);
 
         CreateAndAddLabelIC(label1);
         Operand right2 = CreateOperand(Ope_INT);
         right2->u.const_int = 1;
-        CreateAndAddAssignIC(place,right2);
+        CreateAndAddAssignIC(tmp,right2);
         CreateAndAddLabelIC(label2);
+
+        if(place == NULL)
+            tmp->u.tvar_no = tvar_num++;
+        else{
+            place->kind = Ope_TVAR;
+            tmp->u.tvar_no = place->u.tvar_no;
+        }
 
         if(rettype == NULL)
             return NULL;
@@ -594,29 +610,38 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
 
 
         if(child2 == NULL){
-            if(place == NULL)
-                return NULL;
             //ID,变量
             if((tmpitem == NULL || tmpitem->symkind != VARIABLE) && param == NULL){
                 fprintf(stderr,"Error type 1 at Line %d: Undefined variable \" %s \".\n",child1->row,child1->value.type_string);
                 return NULL;
             }
+            Operand tmp = CreateOperand(Ope_TVAR);
             if(tmpitem != NULL){
                 //Lab3
                 //判断是否是复杂类型
-                if(tmpitem->type->kind == BASIC){
-                    place->kind = Ope_TVAR;
+                if(tmpitem->type->kind == BASIC){                 
                     Operand right = CreateOperand(Ope_VAR);
                     right->u.var_no = tmpitem->var_no;
-                    CreateAndAddAssignIC(place,right);
+                    CreateAndAddAssignIC(tmp,right);
+                    if(place == NULL)
+                        tmp->u.tvar_no = tvar_num++;
+                    else {
+                        place->kind = Ope_TVAR;
+                        tmp->u.tvar_no = place->u.tvar_no;
+                    }
                 }
                 else{
-                    place->kind = Ope_TVAR;
                     Operand right = CreateOperand(Ope_ADDR);
                     right->addr = ADDR_VAR;
                     right->is_addr = false;
                     right->u.var_no = tmpitem->var_no;
-                    CreateAndAddAssignIC(place,right);
+                    CreateAndAddAssignIC(tmp,right);
+                    if(place == NULL)
+                        tmp->u.tvar_no = tvar_num++;
+                    else {
+                        place->kind = Ope_TVAR;
+                        tmp->u.tvar_no = place->u.tvar_no;
+                    }
                 }
                 //
                 return tmpitem->type;
@@ -639,10 +664,15 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
                 //     CreateAndAddAssignIC(place,right);
                 // }         
                 //
-                place->kind = Ope_TVAR;
                 Operand right = CreateOperand(Ope_VAR);
                 right->u.var_no = param->var_no;
-                CreateAndAddAssignIC(place,right);
+                CreateAndAddAssignIC(tmp,right);
+                if(place == NULL)
+                    tmp->u.tvar_no = tvar_num++;
+                else {
+                    place->kind = Ope_TVAR;
+                    tmp->u.tvar_no = place->u.tvar_no;
+                }
                 return param->type;
             }               
         }
@@ -658,7 +688,6 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
                 return NULL;
             }
             //参数是否匹配
-            paramsnum = 0;
             child3 = child2->brother;
             //参数数目匹配
             if(strcmp(child3->name,"Args") == 0 && tmpitem->paramnums == 0){
@@ -680,8 +709,15 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
                     CreateAndAddReadIC(place);
                 }
                 else{
-                    place->kind = Ope_TVAR;
-                    CreateAndAddCallIC(place,tmpitem->name);
+                    if(place != NULL){
+                        place->kind = Ope_TVAR;
+                        CreateAndAddCallIC(place,tmpitem->name);
+                    }   
+                    else{
+                        Operand tmp = CreateOperand(Ope_TVAR);
+                        tmp->u.tvar_no = tvar_num++;
+                        CreateAndAddCallIC(tmp,tmpitem->name);
+                    }        
                 }
                 //
                 return tmpitem->type;
@@ -690,8 +726,10 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
             //数目均不为0
             //ID LP Args RP
             Operand* arglist = (Operand*)malloc(sizeof(Operand)*50);
-            memset(arglist,0,sizeof(Operand)*50); 
-            if(AnalasysForArgs(child3,tmpitem,_funcitem, arglist, 49) == false){
+            memset(arglist,0,sizeof(Operand)*50);  
+            
+            //LogGreen("for Args in func %s",tmpitem->name);
+            if(AnalasysForArgs(child3,tmpitem,_funcitem, arglist, 49, 0) == false){
                 fprintf(stderr,"Error type 9 at Line %d: The number or type of the arguments is wrong in called function \" %s \".\n",child3->row,child1->value.type_string);
                 return NULL;
             }
@@ -701,17 +739,31 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
             //Lab3
             if(strcmp(tmpitem->name,"write") == 0){
                 CreateAndAddWriteIC(arglist[49]);
+                if(place != NULL){
+                    place->kind = Ope_TVAR;
+                    Operand zero = CreateOperand(Ope_INT);
+                    zero->u.const_int = 0;
+                    CreateAndAddAssignIC(place,zero);
+                }
             }
             else{
-                for(int i = 49; i >= 0; --i){
+                for(int i = 0; i < 50; ++i){
                     if(arglist[i] == NULL)
-                        break;
+                        continue;
                     CreateAndAddArgIC(arglist[i]);
                 }
-                place->kind = Ope_TVAR;
-                CreateAndAddCallIC(place,tmpitem->name);
+                if(place != NULL){
+                    place->kind = Ope_TVAR;
+                    CreateAndAddCallIC(place,tmpitem->name);
+                }
+                else{
+                    Operand tmp = CreateOperand(Ope_TVAR);
+                    tmp->u.tvar_no = tvar_num++;
+                    CreateAndAddCallIC(tmp,tmpitem->name);
+                }         
             }
             //
+            //LogRed("functype %d",tmpitem->type->kind);
             return tmpitem->type;
         }
     }
@@ -753,7 +805,7 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
 
                     CreateAndAddAssignIC(left,tvar1);
 
-                    if(place != NULL){
+                    if(place != NULL){               
                         place->kind = Ope_TVAR;
                         CreateAndAddAssignIC(place,left);
                     }
@@ -823,23 +875,30 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
         }
         else if(IS_LOGICALOP(child2)){
             //分析
-            if(place == NULL)
-                return NULL;
+            Operand tmp = CreateOperand(Ope_TVAR);
+
             int label1 = lab_num++;
             int label2 = lab_num++;
-            place->kind = Ope_TVAR;
 
             Operand right1 = CreateOperand(Ope_INT);
             right1->u.const_int = 0;
-            CreateAndAddAssignIC(place,right1);
+            CreateAndAddAssignIC(tmp,right1);
 
             type1 = Translate_Cond(ptr,_funcitem,label1,label2);
 
             CreateAndAddLabelIC(label1);
             Operand right2 = CreateOperand(Ope_INT);
             right2->u.const_int = 1;
-            CreateAndAddAssignIC(place,right2);
+            CreateAndAddAssignIC(tmp,right2);
             CreateAndAddLabelIC(label2);
+
+            if(place == NULL){
+                tmp->u.tvar_no = tvar_num++;
+            }
+            else{
+                place->kind = Ope_TVAR;
+                tmp->u.tvar_no = place->u.tvar_no;
+            }
             
             if((type1->kind != BASIC) || (type1->kind == BASIC && type1->u.basic != 0)){
                 fprintf(stderr,"Error type 7 at Line %d: Operand types do not match or operand types do not match operators.\n",child1->row);
@@ -855,8 +914,8 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
             return type1;
         }
         else if(IS_ARITHMETICOP(child2)){
-            if(place == NULL)
-                return NULL;
+            Operand tmp = CreateOperand(Ope_TVAR);
+
             Operand tvar1 = CreateOperand(Ope_NONE);
             tvar1->u.tvar_no = tvar_num++;
             Operand tvar2 = CreateOperand(Ope_NONE);
@@ -875,25 +934,33 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
                 return NULL;
             }
 
-            place->kind = Ope_TVAR;
+            
             if(strcmp(child2->name,"PLUS") == 0){
-                CreateAndAddAddIC(place,tvar1,tvar2);
+                CreateAndAddAddIC(tmp,tvar1,tvar2);
             }
             else if(strcmp(child2->name,"MINUS") == 0){
-                CreateAndAddSubIC(place,tvar1,tvar2);
+                CreateAndAddSubIC(tmp,tvar1,tvar2);
             }
             else if(strcmp(child2->name,"STAR") == 0){
-                CreateAndAddMulIC(place,tvar1,tvar2);
+                CreateAndAddMulIC(tmp,tvar1,tvar2);
             }
             else if(strcmp(child2->name,"DIV") == 0){
-                CreateAndAddDivIC(place,tvar1,tvar2);
+                CreateAndAddDivIC(tmp,tvar1,tvar2);
             }
+
+            if(place == NULL)
+                tmp->u.tvar_no = tvar_num++;
+            else{
+                place->kind = Ope_TVAR;
+                tmp->u.tvar_no = place->u.tvar_no;
+            }
+
             return type1;
         }
         else if(strcmp(child2->name,"LB") == 0){
             //分析exp
-            if(place == NULL)
-                return NULL;
+            Operand tmp = CreateOperand(Ope_TVAR);
+
             Operand tvar1 = CreateOperand(Ope_NONE);
             tvar1->u.tvar_no = tvar_num++;
             type1 = AnalasysForExp(child1,_funcitem,tvar1);
@@ -922,26 +989,34 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
             CreateAndAddMulIC(tvar3,tvar2,sizeop);
             //t4 = t1 + t3
             Operand tvar4 = CreateOperand(Ope_TVAR);
-            tvar4->u.tvar_no = place->u.tvar_no; 
             CreateAndAddAddIC(tvar4,tvar1,tvar3);
 
             if(type1->u.array.elem->kind == BASIC){
-                place->kind = Ope_ADDR;
-                place->addr = ADDR_TVAR;
-                place->is_addr = true;
+                if(place == NULL){
+                    tvar4->u.tvar_no = tvar_num; 
+                }
+                else{
+                    place->kind = Ope_ADDR;
+                    place->addr = ADDR_TVAR;
+                    place->is_addr = true;
+                    tvar4->u.tvar_no = place->u.tvar_no; 
+                }
             } 
             else{
-                place->kind = Ope_TVAR;
+                if(place == NULL){
+                    tvar4->u.tvar_no = tvar_num; 
+                }
+                else{
+                    place->kind = Ope_TVAR;
+                    tvar4->u.tvar_no = place->u.tvar_no; 
+                }               
             }
 
             return type1->u.array.elem;
         }
         else if(strcmp(child2->name,"DOT") == 0){
             //分析exp
-            if(place == NULL){
-                LogWhite("place is NULL IN STRUCT");
-                return NULL;
-            }
+            Operand tmp = CreateOperand(Ope_TVAR);
                 
             Operand tvar1 = CreateOperand(Ope_NONE);
             tvar1->u.tvar_no = tvar_num++;
@@ -961,19 +1036,30 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
 
             //t2(place) = t1 + size          
             Operand tvar2 = CreateOperand(Ope_TVAR);
-            tvar2->u.tvar_no = place->u.tvar_no;
             Operand sizeop = CreateOperand(Ope_INT);
             sizeop->u.const_int = *size;
             CreateAndAddAddIC(tvar2,tvar1,sizeop);
             
             if(ret->kind == BASIC){
-                place->kind = Ope_ADDR;
-                place->addr = ADDR_TVAR;
-                place->is_addr = true;
+                if(place == NULL)
+                    tvar2->u.tvar_no = tvar_num++;
+                else{
+                    place->kind = Ope_ADDR;
+                    place->addr = ADDR_TVAR;
+                    place->is_addr = true;
+                    tvar2->u.tvar_no = place->u.tvar_no;
+                }
+
             }
-            else
-                place->kind = Ope_TVAR;
-    
+            else{
+                if(place == NULL)
+                    tvar2->u.tvar_no = tvar_num++;
+                else{
+                    place->kind = Ope_TVAR;
+                    tvar2->u.tvar_no = place->u.tvar_no;
+                }
+            }
+
             return ret;
         }
         else
