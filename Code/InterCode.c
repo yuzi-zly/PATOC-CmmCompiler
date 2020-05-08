@@ -434,68 +434,35 @@ static char* getConstint(Operand op){
     return ret;
 }
 
-static char* getleftcode(Operand left){
+
+static char* getcode(Operand op){
     #ifdef L3DEBUG
-    LogYellow("in getleftcode");
-    #endif
-
-    char* ret = (char*)malloc(30);
-    memset(ret,0,30);
-    if(left->kind == Ope_VAR){
-        strcat(ret,getVar(left));
-    }
-    else if(left->kind == Ope_TVAR){
-        strcat(ret,getTvar(left));
-    }
-    else if(left->kind == Ope_ADDR){
-        if(left->is_addr){
-            strcat(ret,"*");
-        }
-        else{
-            strcat(ret,"&");
-        }
-        if(left->addr == ADDR_VAR)
-            strcat(ret,getVar(left));
-        else if(left->addr == ADDR_TVAR)
-            strcat(ret,getTvar(left));
-    }
-    else{
-        LogRed("%d",left->kind);
-        Assert(0,"wrong in leftcode");
-    }
-        
-
-    return ret;
-}
-
-static char* getrightcode(Operand right){
-    #ifdef L3DEBUG
-    LogYellow("in getrightcode");
+    LogYellow("in getcode");
     #endif
 
     char* ret = (char*)malloc(60);
     memset(ret,0,60);
-    switch (right->kind){
+    switch (op->kind){
     case Ope_VAR:
-        strcat(ret,getVar(right));
+        strcat(ret,getVar(op));
         break;
     case Ope_TVAR:
-        strcat(ret,getTvar(right));
+        strcat(ret,getTvar(op));
         break;  
     case Ope_INT:
-        strcat(ret,getConstint(right));
+        strcat(ret,getConstint(op));
         break;
     case Ope_ADDR:
-        if(right->is_addr){
+        if(op->is_addr){
             strcat(ret,"*");
         }
         else{
             strcat(ret,"&");
         }
-        if(right->addr == ADDR_VAR)
-            strcat(ret,getVar(right));
-        else if(right->addr == ADDR_TVAR)
-            strcat(ret,getTvar(right));
+        if(op->addr == ADDR_VAR)
+            strcat(ret,getVar(op));
+        else if(op->addr == ADDR_TVAR)
+            strcat(ret,getTvar(op));
         break;
     default:
         break;
@@ -503,7 +470,6 @@ static char* getrightcode(Operand right){
 
     return ret;
 }
-
 
 static char* PrintEachInterCode(struct InterCode* code){
     #ifdef L3DEBUG
@@ -534,8 +500,8 @@ static char* PrintEachInterCode(struct InterCode* code){
         #endif
         Operand left = code->u.ic_assign.left;
         Operand right = code->u.ic_assign.right;     
-        char *leftcode = getleftcode(left);
-        char *rightcode = getrightcode(right);
+        char *leftcode = getcode(left);
+        char *rightcode = getcode(right);
 
         sprintf(outstr,"%s := %s\n",leftcode,rightcode);
         break;
@@ -548,9 +514,9 @@ static char* PrintEachInterCode(struct InterCode* code){
         Operand right1 = code->u.ic_add.right1;
         Operand right2 = code->u.ic_add.right2;
         
-        char* leftcode = getleftcode(left);
-        char* right1code = getrightcode(right1);
-        char* right2code = getrightcode(right2);
+        char* leftcode = getcode(left);
+        char* right1code = getcode(right1);
+        char* right2code = getcode(right2);
 
         sprintf(outstr,"%s := %s + %s\n",leftcode,right1code,right2code);
         break;
@@ -563,9 +529,9 @@ static char* PrintEachInterCode(struct InterCode* code){
         Operand right1 = code->u.ic_sub.right1;
         Operand right2 = code->u.ic_sub.right2;
         
-        char* leftcode = getleftcode(left);
-        char* right1code = getrightcode(right1);
-        char* right2code = getrightcode(right2);
+        char* leftcode = getcode(left);
+        char* right1code = getcode(right1);
+        char* right2code = getcode(right2);
 
         sprintf(outstr,"%s := %s - %s\n",leftcode,right1code,right2code);
         break;
@@ -578,9 +544,9 @@ static char* PrintEachInterCode(struct InterCode* code){
         Operand right1 = code->u.ic_mul.right1;
         Operand right2 = code->u.ic_mul.right2;
         
-        char* leftcode = getleftcode(left);
-        char* right1code = getrightcode(right1);
-        char* right2code = getrightcode(right2);
+        char* leftcode = getcode(left);
+        char* right1code = getcode(right1);
+        char* right2code = getcode(right2);
 
         sprintf(outstr,"%s := %s * %s\n",leftcode,right1code,right2code);
         break;
@@ -593,9 +559,9 @@ static char* PrintEachInterCode(struct InterCode* code){
         Operand right1 = code->u.ic_div.right1;
         Operand right2 = code->u.ic_div.right2;
         
-        char* leftcode = getleftcode(left);
-        char* right1code = getrightcode(right1);
-        char* right2code = getrightcode(right2);
+        char* leftcode = getcode(left);
+        char* right1code = getcode(right1);
+        char* right2code = getcode(right2);
 
         sprintf(outstr,"%s := %s / %s\n",leftcode,right1code,right2code);
         break;
@@ -607,8 +573,8 @@ static char* PrintEachInterCode(struct InterCode* code){
         Operand left = code->u.ic_relop.left;
         Operand right = code->u.ic_relop.right;
 
-        char* leftcode = getleftcode(left);
-        char* rightcode = getrightcode(right);
+        char* leftcode = getcode(left);
+        char* rightcode = getcode(right);
 
 
         sprintf(outstr,"%s %s %s",leftcode,code->u.ic_relop.relop,rightcode);
@@ -634,7 +600,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         LogGreen("In print IC_RETURN");
         #endif
         Operand ret = code->u.ic_return.ret;
-        char* tmpcode = getrightcode(ret);
+        char* tmpcode = getcode(ret);
         sprintf(outstr,"RETURN %s\n",tmpcode);
         break;
     }
@@ -643,7 +609,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         LogGreen("In print IC_DEC");
         #endif
         Operand var = code->u.ic_dec.var;
-        char* tmpcode = getrightcode(var);
+        char* tmpcode = getcode(var);
         sprintf(outstr,"DEC %s %d\n",tmpcode,code->u.ic_dec.size);
         break;
     }
@@ -652,7 +618,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         LogGreen("In print IC_ARG");
         #endif
         Operand arg = code->u.ic_arg.arg;
-        char* tmpcode = getrightcode(arg);
+        char* tmpcode = getcode(arg);
         sprintf(outstr,"ARG %s\n",tmpcode);
         break;
     }
@@ -661,7 +627,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         LogGreen("In print IC_CALL");
         #endif
         Operand left = code->u.ic_call.left;
-        char* leftcode = getleftcode(left);
+        char* leftcode = getcode(left);
         sprintf(outstr,"%s := CALL %s\n",
             leftcode,code->u.ic_call.function->u.funcname);   
         break;
@@ -671,7 +637,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         LogGreen("In print IC_PARAM");
         #endif
         Operand param  = code->u.ic_param.param;
-        char* tmpcode = getrightcode(param);
+        char* tmpcode = getcode(param);
         sprintf(outstr,"PARAM %s\n",tmpcode);
         break;
     }
@@ -680,7 +646,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         LogGreen("In print IC_READ");
         #endif
         Operand read_var = code->u.ic_read.read_var;
-        char* tmpcode = getrightcode(read_var);
+        char* tmpcode = getcode(read_var);
         sprintf(outstr,"READ %s\n",tmpcode);
         break;
     }
@@ -689,7 +655,7 @@ static char* PrintEachInterCode(struct InterCode* code){
         LogGreen("In print IC_WRITE");
         #endif
         Operand write_var = code->u.ic_write.write_var;
-        char* tmpcode = getrightcode(write_var);
+        char* tmpcode = getcode(write_var);
         sprintf(outstr,"WRITE %s\n",tmpcode);
         break;
     }

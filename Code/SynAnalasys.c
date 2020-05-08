@@ -505,11 +505,15 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
         //Lab3
         if(place == NULL)
             return GetTypeByName("int");
+        place->kind = Ope_INT;
+        place->u.const_int = child1->value.type_int;
+        /*
         place->kind = Ope_TVAR;
         Operand right = CreateOperand(Ope_INT);
         right->u.const_int = child1->value.type_int;
         CreateAndAddAssignIC(place, right);
-        //
+        */
+       //
         return GetTypeByName("int");
     }
     else if(strcmp(child1->name,"FLOAT") == 0){
@@ -618,62 +622,78 @@ Type AnalasysForExp(struct Node* ptr, Item* _funcitem, Operand place){
             Operand tmp = CreateOperand(Ope_TVAR);
             if(tmpitem != NULL){
                 //Lab3
-                //判断是否是复杂类型
-                if(tmpitem->type->kind == BASIC){                 
-                    Operand right = CreateOperand(Ope_VAR);
-                    right->u.var_no = tmpitem->var_no;
-                    CreateAndAddAssignIC(tmp,right);
-                    if(place == NULL)
-                        tmp->u.tvar_no = tvar_num++;
-                    else {
-                        place->kind = Ope_TVAR;
-                        tmp->u.tvar_no = place->u.tvar_no;
+                //优化测试
+                if(tmpitem->type->kind == BASIC){
+                    if(place != NULL){
+                        place->kind = Ope_VAR;
+                        place->u.var_no = tmpitem->var_no;
+                        return tmpitem->type;
                     }
+                    else 
+                        return tmpitem->type;
                 }
                 else{
-                    Operand right = CreateOperand(Ope_ADDR);
-                    right->addr = ADDR_VAR;
-                    right->is_addr = false;
-                    right->u.var_no = tmpitem->var_no;
-                    CreateAndAddAssignIC(tmp,right);
-                    if(place == NULL)
-                        tmp->u.tvar_no = tvar_num++;
-                    else {
-                        place->kind = Ope_TVAR;
-                        tmp->u.tvar_no = place->u.tvar_no;
+                    if(place != NULL){
+                        place->kind = Ope_ADDR;
+                        place->is_addr = false;
+                        place->addr = ADDR_VAR;
+                        place->u.var_no = tmpitem->var_no;
+                        return tmpitem->type;
                     }
+                    else
+                        return tmpitem->type;
                 }
                 //
-                return tmpitem->type;
+
+                //判断是否是复杂类型
+                // if(tmpitem->type->kind == BASIC){                 
+                //     Operand right = CreateOperand(Ope_VAR);
+                //     right->u.var_no = tmpitem->var_no;
+                //     CreateAndAddAssignIC(tmp,right);
+                //     if(place == NULL)
+                //         tmp->u.tvar_no = tvar_num++;
+                //     else {
+                //         place->kind = Ope_TVAR;
+                //         tmp->u.tvar_no = place->u.tvar_no;
+                //     }
+                // }
+                // else{
+                //     Operand right = CreateOperand(Ope_ADDR);
+                //     right->addr = ADDR_VAR;
+                //     right->is_addr = false;
+                //     right->u.var_no = tmpitem->var_no;
+                //     CreateAndAddAssignIC(tmp,right);
+                //     if(place == NULL)
+                //         tmp->u.tvar_no = tvar_num++;
+                //     else {
+                //         place->kind = Ope_TVAR;
+                //         tmp->u.tvar_no = place->u.tvar_no;
+                //     }
+                // }
+                // //
+                // return tmpitem->type;
             }           
             else{
                 //Lab3 
-                //判断是否是复杂类型
-                // if(param->type->kind == BASIC){
-                //     place->kind = Ope_TVAR;
-                //     Operand right = CreateOperand(Ope_VAR);
-                //     right->u.var_no = param->var_no;
-                //     CreateAndAddAssignIC(place,right);
-                // }
-                // else{
-                //     place->kind = Ope_TVAR;
-                //     Operand right = CreateOperand(Ope_ADDR);
-                //     right->addr = ADDR_VAR;
-                //     right->is_addr = true;
-                //     right->u.var_no = param->var_no;
-                //     CreateAndAddAssignIC(place,right);
-                // }         
-                //
-                Operand right = CreateOperand(Ope_VAR);
-                right->u.var_no = param->var_no;
-                CreateAndAddAssignIC(tmp,right);
-                if(place == NULL)
-                    tmp->u.tvar_no = tvar_num++;
-                else {
-                    place->kind = Ope_TVAR;
-                    tmp->u.tvar_no = place->u.tvar_no;
+                //优化测试
+                if(place != NULL){
+                    place->kind = Ope_VAR;
+                    place->u.var_no = param->var_no;
+                    return param->type;
                 }
-                return param->type;
+                else 
+                    return param->type;
+                //
+                // Operand right = CreateOperand(Ope_VAR);
+                // right->u.var_no = param->var_no;
+                // CreateAndAddAssignIC(tmp,right);
+                // if(place == NULL)
+                //     tmp->u.tvar_no = tvar_num++;
+                // else {
+                //     place->kind = Ope_TVAR;
+                //     tmp->u.tvar_no = place->u.tvar_no;
+                // }
+                // return param->type;
             }               
         }
         else{
