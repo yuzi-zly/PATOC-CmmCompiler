@@ -22,13 +22,17 @@ Item* FuncList[HTSIZE];
 
 /*---------------------- Others ----------------------------*/
 char* myitoa(int num, char* str){
+	long long tmp = num < 0 ? 0 - (long long)num: num;
     int i = 0;
+    if(num < 0){
+    	str[i++] = '-';
+	}
     do
     {
-        str[i++] = num%10+48;
-        num /= 10;
-    }while(num);
-    str[i] = '\0';  
+        str[i++] = tmp%10+48;
+        tmp /= 10;
+    }while(tmp);
+    str[i] = '\0';
     int j = 0;
     if(str[0]=='-')
     {
