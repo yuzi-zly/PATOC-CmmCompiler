@@ -383,7 +383,7 @@ void CreateAndAddSpacelineIC(){
 
 /*--------------------------print Intercode-------------------------------*/
 
-static char* getTvar(Operand op){
+char* getTvar(Operand op){
     #ifdef L3DEBUG
     LogYellow("in getTvar");
     #endif
@@ -400,7 +400,7 @@ static char* getTvar(Operand op){
     return ret;
 }
 
-static char* getVar(Operand op){
+char* getVar(Operand op){
     #ifdef L3DEBUG
     LogYellow("in getVar");
     #endif
@@ -417,7 +417,7 @@ static char* getVar(Operand op){
     return ret;
 }
 
-static char* getConstint(Operand op){
+char* getConstint(Operand op){
      #ifdef L3DEBUG
     LogYellow("in getConstint");
     #endif
@@ -435,7 +435,7 @@ static char* getConstint(Operand op){
 }
 
 
-static char* getcode(Operand op){
+char* getcode(Operand op){
     #ifdef L3DEBUG
     LogYellow("in getcode");
     #endif
@@ -471,7 +471,7 @@ static char* getcode(Operand op){
     return ret;
 }
 
-static char* PrintEachInterCode(struct InterCode* code){
+char* PrintEachInterCode(struct InterCode* code){
     #ifdef L3DEBUG
         LogYellow("In PrintEachInterCode");
     #endif
@@ -496,7 +496,7 @@ static char* PrintEachInterCode(struct InterCode* code){
     }
     case IC_ASSIGN:{
         #ifdef L3DEBUG
-        LogGreen("In print IC_FUNC");
+        LogGreen("In print IC_ASSIGN");
         #endif
         Operand left = code->u.ic_assign.left;
         Operand right = code->u.ic_assign.right;     

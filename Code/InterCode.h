@@ -72,3 +72,6 @@ void CreateAndAddWriteIC(Operand write_var);
 void CreateAndAddArgIC(Operand arg_var);
 void CreateAndAddReturnIC(Operand ret_var);
 void CreateAndAddSpacelineIC();
+void PrintInterCodes(char* filename);
+char* PrintEachInterCode(struct InterCode* code);
+char* getcode(Operand op);

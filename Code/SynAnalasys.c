@@ -1622,6 +1622,8 @@ void AnalasysForExtDefList(struct Node* ptr){
     AnalasysForExtDefList(extdeflist);
 }
 
+
+void PrintMipsCodes(char* filename);
 // for Program
 void AnalasysForProgram(struct Node* ptr, char* filename){
     #ifdef DEBUG
@@ -1665,5 +1667,9 @@ void AnalasysForProgram(struct Node* ptr, char* filename){
     }
 
     //lab3 打印中间代码
-    PrintInterCodes(filename);
+    //PrintInterCodes(filename);
+
+    //lab4 生成目标代码
+    PrintMipsCodes(filename);
+
 }
