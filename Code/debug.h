@@ -3,7 +3,7 @@
 #include <assert.h>
 
 // #define L3DEBUG
-#define L4DEBUG
+//#define L4DEBUG
 
 #define Assert(cond, ...)\
   do { \

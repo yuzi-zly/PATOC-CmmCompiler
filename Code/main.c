@@ -8,7 +8,7 @@ extern void yyparse();
 extern int print_flag;
 
 void OutputTree(struct Node* root);
-void AnalasysForProgram(struct Node* ptr, char* filename);
+void AnalasysForProgram(struct Node* ptr, char* filename1,char*filename2);
 
 
 int main(int argc, char** argv){
@@ -23,6 +23,6 @@ int main(int argc, char** argv){
     // if(print_flag == 1)
     //     OutputTree(root);
     if(print_flag == 1)
-        AnalasysForProgram(root,argv[2]);
+        AnalasysForProgram(root,argv[2],argv[3]);
     return 0;
 }
