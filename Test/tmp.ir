@@ -1,127 +1,481 @@
-FUNCTION Swap :
-PARAM v1
-PARAM v2
-PARAM v3
-t4 := v2 * #4
-t1 := v1 + t4
-v4 := *t1
-t8 := v2 * #4
-t5 := v1 + t8
-t12 := v3 * #4
-t9 := v1 + t12
-*t5 := *t9
-t16 := v3 * #4
-t13 := v1 + t16
-*t13 := v4
-RETURN #0
+.data 
+_prompt: .asciiz "Enter an integer:" 
+_ret: .asciiz "\n" 
+.globl main 
+.text 
+read: 
+  li $v0, 4 
+  la $a0, _prompt 
+  syscall 
+  li $v0, 5
+  syscall
+  jr $ra
 
-FUNCTION Partition :
-PARAM v5
-PARAM v6
-PARAM v7
-t22 := v6 * #4
-t19 := v5 + t22
-v8 := *t19
-LABEL label1 :
-IF v6 < v7 GOTO label2
-GOTO label3
-LABEL label2 :
-LABEL label4 :
-IF v6 < v7 GOTO label7
-GOTO label6
-LABEL label7 :
-t31 := v7 * #4
-t27 := v5 + t31
-IF *t27 >= v8 GOTO label5
-GOTO label6
-LABEL label5 :
-t32 := v7 - #1
-v7 := t32
-GOTO label4
-LABEL label6 :
-ARG v7
-ARG v6
-ARG v5
-t38 := CALL Swap
-LABEL label8 :
-IF v6 < v7 GOTO label11
-GOTO label10
-LABEL label11 :
-t45 := v6 * #4
-t41 := v5 + t45
-IF *t41 <= v8 GOTO label9
-GOTO label10
-LABEL label9 :
-t46 := v6 + #1
-v6 := t46
-GOTO label8
-LABEL label10 :
-ARG v7
-ARG v6
-ARG v5
-t52 := CALL Swap
-GOTO label1
-LABEL label3 :
-RETURN v6
+write:
+  li $v0, 1
+  syscall
+  li $v0, 4
+  la $a0, _ret
+  syscall
+  move $v0, $0
+  jr $ra
 
-FUNCTION QuickSort :
-PARAM v9
-PARAM v10
-PARAM v11
-IF v10 < v11 GOTO label12
-GOTO label13
-LABEL label12 :
-ARG v11
-ARG v10
-ARG v9
-t56 := CALL Partition
-v12 := t56
-t62 := v12 - #1
-ARG t62
-ARG v10
-ARG v9
-t65 := CALL QuickSort
-t67 := v12 + #1
-ARG v11
-ARG t67
-ARG v9
-t71 := CALL QuickSort
-LABEL label13 :
-RETURN #0
+myfunc_display:
+  addi $sp, $sp, -28
+  lw $t1, 8($fp)
+  sw $t1, -4($fp)
+  lw $t1, 12($fp)
+  sw $t1, -8($fp)
+  li $t1, 0
+  sw $t1, -12($fp)
+label1:
+  lw $t1, -12($fp)
+  lw $t2, -8($fp)
+  blt $t1, $t2, label2
+  j label3
+label2:
+  li $t2, 4
+  lw $t3, -12($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -16($fp)
+  lw $t2, -4($fp)
+  lw $t3, -16($fp)
+  add $t1, $t2, $t3
+  sw $t1, -20($fp)
+  lw $t2, -20($fp)
+  lw $t1, 0($t2)
+  sw $t1, -24($fp)
+  lw $t2, -24($fp)
+  move $a0, $t2
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  addi $sp, $sp, -4
+  sw $fp, 0($sp)
+  move $fp, $sp
+  jal write
+  move $sp, $fp
+  lw $fp, 0($sp)
+  addi $sp, $sp, 4
+  lw $ra, 0($sp)
+  addi $sp, $sp, 4
+  lw $t2, -12($fp)
+  li $t3, 1
+  add $t1, $t2, $t3
+  sw $t1, -28($fp)
+  lw $t2, -28($fp)
+  move $t1, $t2
+  sw $t1, -12($fp)
+  j label1
+label3:
+  move $v0, $0
+  jr $ra
 
-FUNCTION main :
-v13 := #8
-DEC v14 32
-v15 := #0
-LABEL label14 :
-IF v15 < v13 GOTO label15
-GOTO label16
-LABEL label15 :
-t80 := v15 * #4
-t77 := &v14 + t80
-READ t81
-*t77 := t81
-t82 := v15 + #1
-v15 := t82
-GOTO label14
-LABEL label16 :
-t87 := v13 - #1
-ARG t87
-ARG #0
-ARG &v14
-t90 := CALL QuickSort
-v15 := #0
-LABEL label17 :
-IF v15 < v13 GOTO label18
-GOTO label19
-LABEL label18 :
-t97 := v15 * #4
-t94 := &v14 + t97
-t98 := *t94
-WRITE t98
-t99 := v15 + #1
-v15 := t99
-GOTO label17
-LABEL label19 :
-RETURN #0
+myfunc_quicksort:
+  addi $sp, $sp, -120
+  lw $t1, 8($fp)
+  sw $t1, -4($fp)
+  lw $t1, 12($fp)
+  sw $t1, -8($fp)
+  lw $t1, 16($fp)
+  sw $t1, -12($fp)
+  lw $t1, -8($fp)
+  lw $t2, -12($fp)
+  blt $t1, $t2, label4
+  j label5
+label4:
+  lw $t2, -8($fp)
+  move $t1, $t2
+  sw $t1, -16($fp)
+  lw $t2, -12($fp)
+  move $t1, $t2
+  sw $t1, -20($fp)
+  li $t2, 4
+  lw $t3, -8($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -24($fp)
+  lw $t2, -4($fp)
+  lw $t3, -24($fp)
+  add $t1, $t2, $t3
+  sw $t1, -28($fp)
+  lw $t2, -28($fp)
+  lw $t1, 0($t2)
+  sw $t1, -32($fp)
+label6:
+  lw $t1, -16($fp)
+  lw $t2, -20($fp)
+  blt $t1, $t2, label7
+  j label8
+label7:
+label9:
+  lw $t1, -16($fp)
+  lw $t2, -20($fp)
+  blt $t1, $t2, label12
+  j label11
+label12:
+  li $t2, 4
+  lw $t3, -20($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -36($fp)
+  lw $t2, -4($fp)
+  lw $t3, -36($fp)
+  add $t1, $t2, $t3
+  sw $t1, -40($fp)
+  lw $t2, -40($fp)
+  lw $t1, 0($t2)
+  lw $t2, -32($fp)
+  bge $t1, $t2, label10
+  j label11
+label10:
+  lw $t2, -20($fp)
+  li $t3, 1
+  sub $t1, $t2, $t3
+  sw $t1, -44($fp)
+  lw $t2, -44($fp)
+  move $t1, $t2
+  sw $t1, -20($fp)
+  j label9
+label11:
+  lw $t1, -16($fp)
+  lw $t2, -20($fp)
+  blt $t1, $t2, label13
+  j label14
+label13:
+  li $t2, 4
+  lw $t3, -16($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -48($fp)
+  lw $t2, -4($fp)
+  lw $t3, -48($fp)
+  add $t1, $t2, $t3
+  sw $t1, -52($fp)
+  li $t2, 4
+  lw $t3, -20($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -56($fp)
+  lw $t2, -4($fp)
+  lw $t3, -56($fp)
+  add $t1, $t2, $t3
+  sw $t1, -60($fp)
+  lw $t1, -52($fp)
+  lw $t2, -60($fp)
+  lw $t3, 0($t2)
+  sw $t3, 0($t1)
+  lw $t2, -16($fp)
+  li $t3, 1
+  add $t1, $t2, $t3
+  sw $t1, -64($fp)
+  lw $t2, -64($fp)
+  move $t1, $t2
+  sw $t1, -16($fp)
+label14:
+label15:
+  lw $t1, -16($fp)
+  lw $t2, -20($fp)
+  blt $t1, $t2, label18
+  j label17
+label18:
+  li $t2, 4
+  lw $t3, -16($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -68($fp)
+  lw $t2, -4($fp)
+  lw $t3, -68($fp)
+  add $t1, $t2, $t3
+  sw $t1, -72($fp)
+  lw $t2, -72($fp)
+  lw $t1, 0($t2)
+  lw $t2, -32($fp)
+  blt $t1, $t2, label16
+  j label17
+label16:
+  lw $t2, -16($fp)
+  li $t3, 1
+  add $t1, $t2, $t3
+  sw $t1, -76($fp)
+  lw $t2, -76($fp)
+  move $t1, $t2
+  sw $t1, -16($fp)
+  j label15
+label17:
+  lw $t1, -16($fp)
+  lw $t2, -20($fp)
+  blt $t1, $t2, label19
+  j label20
+label19:
+  li $t2, 4
+  lw $t3, -20($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -80($fp)
+  lw $t2, -4($fp)
+  lw $t3, -80($fp)
+  add $t1, $t2, $t3
+  sw $t1, -84($fp)
+  li $t2, 4
+  lw $t3, -16($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -88($fp)
+  lw $t2, -4($fp)
+  lw $t3, -88($fp)
+  add $t1, $t2, $t3
+  sw $t1, -92($fp)
+  lw $t1, -84($fp)
+  lw $t2, -92($fp)
+  lw $t3, 0($t2)
+  sw $t3, 0($t1)
+  lw $t2, -20($fp)
+  li $t3, 1
+  sub $t1, $t2, $t3
+  sw $t1, -96($fp)
+  lw $t2, -96($fp)
+  move $t1, $t2
+  sw $t1, -20($fp)
+label20:
+  j label6
+label8:
+  li $t2, 4
+  lw $t3, -16($fp)
+  mul $t1, $t2, $t3
+  sw $t1, -100($fp)
+  lw $t2, -4($fp)
+  lw $t3, -100($fp)
+  add $t1, $t2, $t3
+  sw $t1, -104($fp)
+  lw $t1, -104($fp)
+  lw $t2, -32($fp)
+  sw $t2, 0($t1)
+  lw $t2, -16($fp)
+  li $t3, 1
+  sub $t1, $t2, $t3
+  sw $t1, -108($fp)
+  addi $sp, $sp, -4
+  lw $t1, -108($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  lw $t1, -8($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  lw $t1, -4($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  addi $sp, $sp, -4
+  sw $fp, 0($sp)
+  move $fp, $sp
+  jal myfunc_quicksort
+  move $sp, $fp
+  lw $fp, 0($sp)
+  addi $sp, $sp, 4
+  lw $ra, 0($sp)
+  addi $sp, $sp, 4
+  addi $sp, $sp, 12
+  move $t1, $v0
+  sw $t1, -112($fp)
+  lw $t2, -16($fp)
+  li $t3, 1
+  add $t1, $t2, $t3
+  sw $t1, -116($fp)
+  addi $sp, $sp, -4
+  lw $t1, -12($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  lw $t1, -116($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  lw $t1, -4($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  addi $sp, $sp, -4
+  sw $fp, 0($sp)
+  move $fp, $sp
+  jal myfunc_quicksort
+  move $sp, $fp
+  lw $fp, 0($sp)
+  addi $sp, $sp, 4
+  lw $ra, 0($sp)
+  addi $sp, $sp, 4
+  addi $sp, $sp, 12
+  move $t1, $v0
+  sw $t1, -120($fp)
+label5:
+  move $v0, $0
+  jr $ra
+
+main:
+  move $fp, $sp
+  addi $sp, $sp, -140
+  li $t1, 10
+  sw $t1, -44($fp)
+  li $t1, 0
+  sw $t1, -48($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -48($fp)
+  add $t1, $t2, $t3
+  sw $t1, -52($fp)
+  lw $t1, -52($fp)
+  li $t2, 12
+  sw $t2, 0($t1)
+  li $t1, 4
+  sw $t1, -56($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -56($fp)
+  add $t1, $t2, $t3
+  sw $t1, -60($fp)
+  lw $t1, -60($fp)
+  li $t2, 85
+  sw $t2, 0($t1)
+  li $t1, 8
+  sw $t1, -64($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -64($fp)
+  add $t1, $t2, $t3
+  sw $t1, -68($fp)
+  lw $t1, -68($fp)
+  li $t2, 25
+  sw $t2, 0($t1)
+  li $t1, 12
+  sw $t1, -72($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -72($fp)
+  add $t1, $t2, $t3
+  sw $t1, -76($fp)
+  lw $t1, -76($fp)
+  li $t2, 16
+  sw $t2, 0($t1)
+  li $t1, 16
+  sw $t1, -80($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -80($fp)
+  add $t1, $t2, $t3
+  sw $t1, -84($fp)
+  lw $t1, -84($fp)
+  li $t2, 34
+  sw $t2, 0($t1)
+  li $t1, 20
+  sw $t1, -88($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -88($fp)
+  add $t1, $t2, $t3
+  sw $t1, -92($fp)
+  lw $t1, -92($fp)
+  li $t2, 23
+  sw $t2, 0($t1)
+  li $t1, 24
+  sw $t1, -96($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -96($fp)
+  add $t1, $t2, $t3
+  sw $t1, -100($fp)
+  lw $t1, -100($fp)
+  li $t2, 49
+  sw $t2, 0($t1)
+  li $t1, 28
+  sw $t1, -104($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -104($fp)
+  add $t1, $t2, $t3
+  sw $t1, -108($fp)
+  lw $t1, -108($fp)
+  li $t2, 95
+  sw $t2, 0($t1)
+  li $t1, 32
+  sw $t1, -112($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -112($fp)
+  add $t1, $t2, $t3
+  sw $t1, -116($fp)
+  lw $t1, -116($fp)
+  li $t2, 17
+  sw $t2, 0($t1)
+  li $t1, 36
+  sw $t1, -120($fp)
+  li $t3, -40
+  add $t2, $fp, $t3
+  lw $t3, -120($fp)
+  add $t1, $t2, $t3
+  sw $t1, -124($fp)
+  lw $t1, -124($fp)
+  li $t2, 61
+  sw $t2, 0($t1)
+  addi $sp, $sp, -4
+  lw $t1, -44($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  li $t2, -40
+  add $t1, $fp, $t2
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  addi $sp, $sp, -4
+  sw $fp, 0($sp)
+  move $fp, $sp
+  jal myfunc_display
+  move $sp, $fp
+  lw $fp, 0($sp)
+  addi $sp, $sp, 4
+  lw $ra, 0($sp)
+  addi $sp, $sp, 4
+  addi $sp, $sp, 8
+  move $t1, $v0
+  sw $t1, -128($fp)
+  lw $t2, -44($fp)
+  li $t3, 1
+  sub $t1, $t2, $t3
+  sw $t1, -132($fp)
+  addi $sp, $sp, -4
+  lw $t1, -132($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  li $t1, 0
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  li $t2, -40
+  add $t1, $fp, $t2
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  addi $sp, $sp, -4
+  sw $fp, 0($sp)
+  move $fp, $sp
+  jal myfunc_quicksort
+  move $sp, $fp
+  lw $fp, 0($sp)
+  addi $sp, $sp, 4
+  lw $ra, 0($sp)
+  addi $sp, $sp, 4
+  addi $sp, $sp, 12
+  move $t1, $v0
+  sw $t1, -136($fp)
+  addi $sp, $sp, -4
+  lw $t1, -44($fp)
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  li $t2, -40
+  add $t1, $fp, $t2
+  sw $t1, 0($sp)
+  addi $sp, $sp, -4
+  sw $ra, 0($sp)
+  addi $sp, $sp, -4
+  sw $fp, 0($sp)
+  move $fp, $sp
+  jal myfunc_display
+  move $sp, $fp
+  lw $fp, 0($sp)
+  addi $sp, $sp, 4
+  lw $ra, 0($sp)
+  addi $sp, $sp, 4
+  addi $sp, $sp, 8
+  move $t1, $v0
+  sw $t1, -140($fp)
+  move $v0, $0
+  jr $ra
 

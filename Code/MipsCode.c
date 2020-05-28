@@ -240,10 +240,22 @@ static char* SaveInStack(Operand left){
     memset(outstr,0,100);
     // 默认需要保存的寄存器为t1
     if(left->kind == Ope_VAR){
-        sprintf(outstr+strlen(outstr),"  sw $t1, %d($fp)\n",offsettable[varmap[left->u.var_no]]*4);
+        if(offsettable[varmap[left->u.var_no]]*4 >= 32767 || offsettable[varmap[left->u.var_no]]*4 <= -32767){
+            sprintf(outstr+strlen(outstr),"  li $t3, %d\n",offsettable[varmap[left->u.var_no]]*4);
+            sprintf(outstr+strlen(outstr),"  add $t2, $fp, $t3\n");
+            sprintf(outstr+strlen(outstr),"  sw $t1, 0($t2)\n");
+        }
+        else
+            sprintf(outstr+strlen(outstr),"  sw $t1, %d($fp)\n",offsettable[varmap[left->u.var_no]]*4);
     }
     else if(left->kind == Ope_TVAR){
-        sprintf(outstr+strlen(outstr),"  sw $t1, %d($fp)\n",offsettable[tvarmap[left->u.tvar_no]]*4);
+        if(offsettable[tvarmap[left->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[left->u.tvar_no]]*4 <= -32767){
+            sprintf(outstr+strlen(outstr),"  li $t3, %d\n",offsettable[tvarmap[left->u.tvar_no]]*4);
+            sprintf(outstr+strlen(outstr),"  add $t2, $fp, $t3\n");
+            sprintf(outstr+strlen(outstr),"  sw $t1, 0($t2)\n");
+        }
+        else
+            sprintf(outstr+strlen(outstr),"  sw $t1, %d($fp)\n",offsettable[tvarmap[left->u.tvar_no]]*4);
     }
     return outstr;
 }
@@ -259,13 +271,31 @@ static char* GetReg(Operand op, int option){
         switch (option)
         {
         case 1:
-            sprintf(ret+strlen(ret),"  lw $t1, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
+            if(offsettable[varmap[op->u.var_no]]*4 >= 32767 || offsettable[varmap[op->u.var_no]]*4 <= -32767){
+                sprintf(ret+strlen(ret),"  li $t3, %d\n",offsettable[varmap[op->u.var_no]]*4);
+                sprintf(ret+strlen(ret),"  add $t2, $fp, $t3\n");
+                sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+            }
+            else
+                sprintf(ret+strlen(ret),"  lw $t1, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
             break;
         case 2:
-            sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
+            if(offsettable[varmap[op->u.var_no]]*4 >= 32767 || offsettable[varmap[op->u.var_no]]*4 <= -32767){
+                sprintf(ret+strlen(ret),"  li $t4, %d\n",offsettable[varmap[op->u.var_no]]*4);
+                sprintf(ret+strlen(ret),"  add $t3, $fp, $t4\n");
+                sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+            }
+            else
+                sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
             break;
         case 3:
-            sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
+            if(offsettable[varmap[op->u.var_no]]*4 >= 32767 || offsettable[varmap[op->u.var_no]]*4 <= -32767){
+                sprintf(ret+strlen(ret),"  li $t5, %d\n",offsettable[varmap[op->u.var_no]]*4);
+                sprintf(ret+strlen(ret),"  add $t4, $fp, $t5\n");
+                sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+            }
+            else
+                sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
             break;
         default:
             break;
@@ -275,13 +305,31 @@ static char* GetReg(Operand op, int option){
         switch (option)
         {
         case 1:
-            sprintf(ret+strlen(ret),"  lw $t1, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+            if(offsettable[tvarmap[op->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[op->u.tvar_no]]*4 <= -32767){
+                sprintf(ret+strlen(ret),"  li $t3, %d\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                sprintf(ret+strlen(ret),"  add $t2, $fp, $t3\n");
+                sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+            }
+            else
+                sprintf(ret+strlen(ret),"  lw $t1, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
             break;
         case 2:
-            sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+            if(offsettable[tvarmap[op->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[op->u.tvar_no]]*4 <= -32767){
+                sprintf(ret+strlen(ret),"  li $t4, %d\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                sprintf(ret+strlen(ret),"  add $t3, $fp, $t4\n");
+                sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+            }
+            else
+                sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
             break;
         case 3:
-            sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+            if(offsettable[tvarmap[op->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[op->u.tvar_no]]*4 <= -32767){
+                sprintf(ret+strlen(ret),"  li $t5, %d\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                sprintf(ret+strlen(ret),"  add $t4, $fp, $t5\n");
+                sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+            }
+            else
+                sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
             break;
         default:
             break;
@@ -294,16 +342,40 @@ static char* GetReg(Operand op, int option){
                 switch (option)
                 {
                 case 1:
-                    sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
-                    sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+                    if(offsettable[varmap[op->u.var_no]]*4 >= 32767 || offsettable[varmap[op->u.var_no]]*4 <= -32767){
+                        sprintf(ret+strlen(ret),"  li $t4, %d\n",offsettable[varmap[op->u.var_no]]*4);
+                        sprintf(ret+strlen(ret),"  add $t3, $fp, $t4\n");
+                        sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                        sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+                    }
+                    else{
+                        sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
+                        sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+                    } 
                     break;
                 case 2:
-                    sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
-                    sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                    if(offsettable[varmap[op->u.var_no]]*4 >= 32767 || offsettable[varmap[op->u.var_no]]*4 <= -32767){
+                        sprintf(ret+strlen(ret),"  li $t5, %d\n",offsettable[varmap[op->u.var_no]]*4);
+                        sprintf(ret+strlen(ret),"  add $t4, $fp, $t5\n");
+                        sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                        sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                    }
+                    else{
+                        sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
+                        sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                    }
                     break;
                 case 3:
-                    sprintf(ret+strlen(ret),"  lw $t4, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
-                    sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                    if(offsettable[varmap[op->u.var_no]]*4 >= 32767 || offsettable[varmap[op->u.var_no]]*4 <= -32767){
+                        sprintf(ret+strlen(ret),"  li $t6, %d\n",offsettable[varmap[op->u.var_no]]*4);
+                        sprintf(ret+strlen(ret),"  add $t5, $fp, $t6\n");
+                        sprintf(ret+strlen(ret),"  lw $t4, 0($t5)\n");
+                        sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                    }
+                    else{
+                        sprintf(ret+strlen(ret),"  lw $t4, %d($fp)\n",offsettable[varmap[op->u.var_no]]*4);
+                        sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                    }
                     break;
                 default:
                     break;
@@ -314,16 +386,40 @@ static char* GetReg(Operand op, int option){
                 switch (option)
                 {
                 case 1:
-                    sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
-                    sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+                    if(offsettable[tvarmap[op->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[op->u.tvar_no]]*4 <= -32767){
+                        sprintf(ret+strlen(ret),"  li $t4, %d\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                        sprintf(ret+strlen(ret),"  add $t3, $fp, $t4\n");
+                        sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                        sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+                    }
+                    else{
+                        sprintf(ret+strlen(ret),"  lw $t2, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                        sprintf(ret+strlen(ret),"  lw $t1, 0($t2)\n");
+                    }  
                     break;
                 case 2:
-                    sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
-                    sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                    if(offsettable[tvarmap[op->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[op->u.tvar_no]]*4 <= -32767){
+                        sprintf(ret+strlen(ret),"  li $t5, %d\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                        sprintf(ret+strlen(ret),"  add $t4, $fp, $t5\n");
+                        sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                        sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                    }
+                    else{
+                        sprintf(ret+strlen(ret),"  lw $t3, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                        sprintf(ret+strlen(ret),"  lw $t2, 0($t3)\n");
+                    }    
                     break;
                 case 3:
-                    sprintf(ret+strlen(ret),"  lw $t4, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
-                    sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                    if(offsettable[tvarmap[op->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[op->u.tvar_no]]*4 <= -32767){
+                        sprintf(ret+strlen(ret),"  li $t6, %d\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                        sprintf(ret+strlen(ret),"  add $t5, $fp, $t6\n");
+                        sprintf(ret+strlen(ret),"  lw $t4, 0($t5)\n");
+                        sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                    }
+                    else{
+                        sprintf(ret+strlen(ret),"  lw $t4, %d($fp)\n",offsettable[tvarmap[op->u.tvar_no]]*4);
+                        sprintf(ret+strlen(ret),"  lw $t3, 0($t4)\n");
+                    }
                     break;
                 default:
                     break;
@@ -429,7 +525,12 @@ static char* PrintEachMipsCode(struct InterCode* code){
                 break;
             }
         }
-        sprintf(outstr+strlen(outstr),"  addi $sp, $sp, %d\n",funcoff*4);
+        if(funcoff*4 >= 32767 || funcoff*4 <= -32767){
+            sprintf(outstr+strlen(outstr),"  li $t1, %d\n",funcoff*4);
+            sprintf(outstr+strlen(outstr),"  add $sp, $sp, $t1\n");
+        }
+        else
+            sprintf(outstr+strlen(outstr),"  addi $sp, $sp, %d\n",funcoff*4);
         break;
     }
     case IC_ASSIGN:{
@@ -441,10 +542,22 @@ static char* PrintEachMipsCode(struct InterCode* code){
         if(left->kind == Ope_ADDR && left->is_addr){
             //将左边变量放入寄存器
             if(left->addr == ADDR_VAR){
-                sprintf(outstr+strlen(outstr),"  lw $t1, %d($fp)\n",offsettable[varmap[left->u.var_no]]*4);
+                if(offsettable[varmap[left->u.var_no]]*4 >= 32767 || offsettable[varmap[left->u.var_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t3, %d\n",offsettable[varmap[left->u.var_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t2, $fp, $t3\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t1, 0($t2)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t1, %d($fp)\n",offsettable[varmap[left->u.var_no]]*4);
             }
             else{
-                sprintf(outstr+strlen(outstr),"  lw $t1, %d($fp)\n",offsettable[tvarmap[left->u.tvar_no]]*4);
+                if(offsettable[tvarmap[left->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[left->u.tvar_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t3, %d\n",offsettable[tvarmap[left->u.tvar_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t2, $fp, $t3\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t1, 0($t2)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t1, %d($fp)\n",offsettable[tvarmap[left->u.tvar_no]]*4);
             }
 
             switch (right->kind)
@@ -460,7 +573,13 @@ static char* PrintEachMipsCode(struct InterCode* code){
             }
             case Ope_VAR:{
                 //将右边的变量的值装入寄存器。
-                sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
+                if(offsettable[varmap[right->u.var_no]]*4 >= 32767 || offsettable[varmap[right->u.var_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[varmap[right->u.var_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
                 //赋值操作
                 sprintf(outstr+strlen(outstr),"  sw $t2, 0($t1)\n");
                 //将左边变量的值写入内存。
@@ -471,7 +590,13 @@ static char* PrintEachMipsCode(struct InterCode* code){
             }  
             case Ope_TVAR:{
                 //将右边的变量的值装入寄存器。
-                sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                 if(offsettable[tvarmap[right->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[right->u.tvar_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
                 //赋值操作
                 sprintf(outstr+strlen(outstr),"  sw $t2, 0($t1)\n");
                 //将左边变量的值写入内存。
@@ -503,10 +628,22 @@ static char* PrintEachMipsCode(struct InterCode* code){
                     /* * */
                     //将右边变量装入寄存器t2
                     if(right->addr == ADDR_VAR){
-                        sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
+                        if(offsettable[varmap[right->u.var_no]]*4 >= 32767 || offsettable[varmap[right->u.var_no]]*4 <= -32767){
+                            sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[varmap[right->u.var_no]]*4);
+                            sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                            sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                        }
+                        else
+                            sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
                     }
                     else{
-                        sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                        if(offsettable[tvarmap[right->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[right->u.tvar_no]]*4 <= -32767){
+                            sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                            sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                            sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                        }
+                        else
+                            sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
                     }
                     //赋值
                     sprintf(outstr+strlen(outstr),"  lw $t3, 0($t2)\n");
@@ -535,7 +672,13 @@ static char* PrintEachMipsCode(struct InterCode* code){
             }      
             case Ope_VAR:{
                 //将右边的变量的值装入寄存器。
-                sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
+                if(offsettable[varmap[right->u.var_no]]*4 >= 32767 || offsettable[varmap[right->u.var_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[varmap[right->u.var_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
                 //赋值操作
                 sprintf(outstr+strlen(outstr),"  move $t1, $t2\n");
                 //将左边变量的值写入内存。
@@ -546,7 +689,13 @@ static char* PrintEachMipsCode(struct InterCode* code){
             }
             case Ope_TVAR:{
                 //将右边的变量的值装入寄存器。
-                sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                if(offsettable[tvarmap[right->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[right->u.tvar_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
                 //赋值操作
                 sprintf(outstr+strlen(outstr),"  move $t1, $t2\n");
                 //将左边变量的值写入内存。
@@ -578,10 +727,22 @@ static char* PrintEachMipsCode(struct InterCode* code){
                     /* * */
                     //将右边变量装入寄存器t2
                     if(right->addr == ADDR_VAR){
-                        sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
+                        if(offsettable[varmap[right->u.var_no]]*4 >= 32767 || offsettable[varmap[right->u.var_no]]*4 <= -32767){
+                            sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[varmap[right->u.var_no]]*4);
+                            sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                            sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                        }
+                        else
+                            sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
                     }
                     else{
-                        sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                        if(offsettable[tvarmap[right->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[right->u.tvar_no]]*4 <= -32767){
+                            sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                            sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                            sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                        }
+                        else
+                            sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
                     }
                     //赋值
                     sprintf(outstr+strlen(outstr),"  lw $t1, 0($t2)\n");
@@ -609,7 +770,13 @@ static char* PrintEachMipsCode(struct InterCode* code){
             }      
             case Ope_VAR:{
                 //将右边的变量的值装入寄存器。
-                sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
+                if(offsettable[varmap[right->u.var_no]]*4 >= 32767 || offsettable[varmap[right->u.var_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[varmap[right->u.var_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
                 //赋值操作
                 sprintf(outstr+strlen(outstr),"  move $t1, $t2\n");
                 //将左边变量的值写入内存。
@@ -620,7 +787,13 @@ static char* PrintEachMipsCode(struct InterCode* code){
             }
             case Ope_TVAR:{
                 //将右边的变量的值装入寄存器。
-                sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                if(offsettable[tvarmap[right->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[right->u.tvar_no]]*4 <= -32767){
+                    sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                    sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                    sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                }
+                else
+                    sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
                 //赋值操作
                 sprintf(outstr+strlen(outstr),"  move $t1, $t2\n");
                 //将左边变量的值写入内存。
@@ -652,10 +825,22 @@ static char* PrintEachMipsCode(struct InterCode* code){
                     /* * */
                     //将右边变量装入寄存器t2
                     if(right->addr == ADDR_VAR){
-                        sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
+                        if(offsettable[varmap[right->u.var_no]]*4 >= 32767 || offsettable[varmap[right->u.var_no]]*4 <= -32767){
+                            sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[varmap[right->u.var_no]]*4);
+                            sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                            sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                        }
+                        else
+                            sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[varmap[right->u.var_no]]*4);
                     }
                     else{
-                        sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                        if(offsettable[tvarmap[right->u.tvar_no]]*4 >= 32767 || offsettable[tvarmap[right->u.tvar_no]]*4 <= -32767){
+                            sprintf(outstr+strlen(outstr),"  li $t4, %d\n",offsettable[tvarmap[right->u.tvar_no]]*4);
+                            sprintf(outstr+strlen(outstr),"  add $t3, $fp, $t4\n");
+                            sprintf(outstr+strlen(outstr),"  lw $t2, 0($t3)\n");
+                        }
+                        else
+                            sprintf(outstr+strlen(outstr),"  lw $t2, %d($fp)\n",offsettable[tvarmap[right->u.tvar_no]]*4);
                     }
                     //赋值
                     sprintf(outstr+strlen(outstr),"  lw $t1, 0($t2)\n");
@@ -689,24 +874,6 @@ static char* PrintEachMipsCode(struct InterCode* code){
             sprintf(outstr+strlen(outstr),"%s",str);
             free(str);
         }
-        // else if(right1->kind == Ope_INT){
-        //     char* str = GetReg(right2, 2);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     sprintf(outstr+strlen(outstr),"  addi $t1, $t2, %d\n",right1->u.const_int);
-        //     free(str);
-        //     str = SaveInStack(left);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     free(str);
-        // }
-        // else if(right2->kind == Ope_INT){
-        //     char* str = GetReg(right1, 2);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     sprintf(outstr+strlen(outstr),"  addi $t1, $t2, %d\n",right2->u.const_int);
-        //     free(str);
-        //     str = SaveInStack(left);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     free(str);
-        // }
         else{
             char* str1 = GetReg(right1, 2);
             char* str2 = GetReg(right2, 3);
@@ -736,26 +903,6 @@ static char* PrintEachMipsCode(struct InterCode* code){
             sprintf(outstr+strlen(outstr),"%s",str);
             free(str);
         }
-        // else if(right1->kind == Ope_INT){  
-        //     // a = 1 - b
-        //     char* str = GetReg(right2, 2);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     sprintf(outstr+strlen(outstr),"  li $t3, %d\n",right1->u.const_int);
-        //     sprintf(outstr+strlen(outstr),"  sub $t1, $t3, $t2\n");
-        //     free(str);
-        //     str = SaveInStack(left);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     free(str);
-        // }
-        // else if(right2->kind == Ope_INT){
-        //     char* str = GetReg(right1, 2);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     sprintf(outstr+strlen(outstr),"  addi $t1, $t2, -%d\n",right2->u.const_int);
-        //     free(str);
-        //     str = SaveInStack(left);
-        //     sprintf(outstr+strlen(outstr),"%s",str);
-        //     free(str);
-        // }
         else{
             char* str1 = GetReg(right1, 2);
             char* str2 = GetReg(right2, 3);
@@ -874,16 +1021,6 @@ static char* PrintEachMipsCode(struct InterCode* code){
         break;
     }
     case IC_RELOP:{
-        #ifdef L4DEBUG
-        LogRed("In print IC_RELOP");
-        #endif
-        // Operand left = code->u.ic_relop.left;
-        // Operand right = code->u.ic_relop.right;
-
-        // char* leftcode = getcode(left);
-        // char* rightcode = getcode(right);
-
-        // sprintf(outstr,"%s %s %s",leftcode,code->u.ic_relop.relop,rightcode);
         break;
     }
     case IC_GOTO:{
@@ -983,10 +1120,6 @@ static char* PrintEachMipsCode(struct InterCode* code){
         break;
     }
     case IC_DEC:{
-        #ifdef L4DEBUG
-        LogGreen("In print IC_DEC");
-        #endif
-        Operand var = code->u.ic_dec.var;
         break;
     }
     case IC_ARG:{
@@ -999,19 +1132,12 @@ static char* PrintEachMipsCode(struct InterCode* code){
         if(arg->kind == Ope_INT){
             sprintf(outstr+strlen(outstr),"  li $t1, %d\n",arg->u.const_int);
         }
-        else if(arg->kind == Ope_VAR){
-            sprintf(outstr+strlen(outstr),"  lw $t1, %d($fp)\n",offsettable[varmap[arg->u.var_no]]*4);
-        }
-        else if(arg->kind == Ope_TVAR){
-            sprintf(outstr+strlen(outstr),"  lw $t1, %d($fp)\n",offsettable[tvarmap[arg->u.tvar_no]]*4);
-        }
-        else if(arg->kind == Ope_ADDR){
+        else{
             char* str = GetReg(arg, 1);
             sprintf(outstr+strlen(outstr),"%s",str);
             free(str);
         }
-        else
-            TODO();
+
         sprintf(outstr+strlen(outstr),"  sw $t1, 0($sp)\n");
 
         break;
