@@ -212,9 +212,9 @@ _ret: .asciiz \"\\n\" \n\
 .globl main \n\
 .text \n\
 read: \n\
-  li $v0, 4 \n\
-  la $a0, _prompt \n\
-  syscall \n\
+  li $v0, 4\n\
+  la $a0, _prompt\n\
+  syscall\n\
   li $v0, 5\n\
   syscall\n\
   jr $ra\n\
@@ -1155,7 +1155,10 @@ static char* PrintEachMipsCode(struct InterCode* code){
         sprintf(outstr+strlen(outstr),"  sw $fp, 0($sp)\n");
         sprintf(outstr+strlen(outstr),"  move $fp, $sp\n");
         //跳转执行
-        sprintf(outstr+strlen(outstr),"  jal myfunc_%s\n",code->u.ic_call.function->u.funcname);
+        if(strcmp(code->u.ic_call.function->u.funcname,"main") == 0)
+            sprintf(outstr+strlen(outstr),"  jal %s\n",code->u.ic_call.function->u.funcname);
+        else
+            sprintf(outstr+strlen(outstr),"  jal myfunc_%s\n",code->u.ic_call.function->u.funcname);
         //恢复现场
         sprintf(outstr+strlen(outstr),"  move $sp, $fp\n");
         sprintf(outstr+strlen(outstr),"  lw $fp, 0($sp)\n");
